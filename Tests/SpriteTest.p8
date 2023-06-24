@@ -164,14 +164,54 @@ sprite {
         cx16.vpoke_mask(1, $fc06 + offset, %11111100, (VHFlips & $03))
     }
 
+    asmsub positionEx(ubyte bank @A, uword address @R0, uword xPos @R1, uword yPos @R2) clobbers(A) {
+        %asm {{
+            stz  cx16.VERA_CTRL
+            and  #1
+            ora  #%10000
+            sta  cx16.VERA_ADDR_H
+            lda  cx16.r0
+            sta  cx16.VERA_ADDR_L
+            lda  cx16.r0+1
+            sta  cx16.VERA_ADDR_M
+            lda  cx16.r1
+            sta  cx16.VERA_DATA0
+            lda  cx16.r1+1
+            sta  cx16.VERA_DATA0
+            lda  cx16.r2
+            sta  cx16.VERA_DATA0
+            lda  cx16.r2+1
+            sta  cx16.VERA_DATA0
+            rts
+        }}
+    }
+
     ; xPos and yPox only use the lower 10 bits, the upper bits are ignored
     sub position(ubyte spriteNum, uword xPos, uword yPos) {
 
         uword offset = spriteNum as uword << 3
-        cx16.vpoke(1, $fc02 + offset, lsb(xPos))
-        cx16.vpoke(1, $fc03 + offset, msb(xPos))
-        cx16.vpoke(1, $fc04 + offset, lsb(yPos))
-        cx16.vpoke(1, $fc05 + offset, msb(yPos))
+        positionEx(1, $fc02 + offset, xPos, yPos)
+    }
+    
+
+    asmsub set_addressEx(ubyte bank @A, uword address @R0, uword sprite_address @R1) clobbers (A) {
+        %asm {{
+            stz  cx16.VERA_CTRL
+            and  #1
+            sta  cx16.VERA_ADDR_H
+            lda  cx16.r0
+            sta  cx16.VERA_ADDR_L
+            lda  cx16.r0+1
+            sta  cx16.VERA_ADDR_M
+            lda  cx16.r1
+            sta  cx16.VERA_DATA0
+            inc  cx16.VERA_ADDR_L
+            lda  #%10000000
+            and  cx16.VERA_DATA0
+            ora  cx16.r1+1
+            sta  cx16.VERA_DATA0
+            rts
+        }}
     }
 
     ; sprites have to be 32 byte aligned, so the lower 5 bits of spriteAddress are ignored
@@ -179,7 +219,6 @@ sprite {
 
         uword offset = spriteNum as uword << 3
         uword addr = (spriteAddress >> 5) | ((spriteBank as uword & 1) << 11)
-        cx16.vpoke(1, $fc00 + offset, lsb(addr))
-        cx16.vpoke_mask(1, $fc01 + offset, %10000000, msb(addr))
+        set_addressEx(1, $fc00 + offset, addr)
     }
 }
