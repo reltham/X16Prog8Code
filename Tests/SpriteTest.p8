@@ -1,6 +1,7 @@
 %import textio
 %import diskio
 %import math
+%import syslib
 %zeropage basicsafe
 
 main $0830 {
@@ -23,7 +24,7 @@ zsmkit_lib:
     romsub $084e = zsm_setatten(ubyte prio @X, ubyte value @A) clobbers(A, X, Y)
 
     const ubyte zsmkit_bank = 1
-    
+
     sub start() {
 
         txt.chrout(19)      ; HOME
@@ -35,12 +36,13 @@ zsmkit_lib:
         ; enable sprites
         cx16.VERA_DC_VIDEO = cx16.VERA_DC_VIDEO | %01000000
 
-        ; setup bird sprites and their starting positions and directions
+        ; setup bird sprites and their starting position, direction, and frame
         const  ubyte  num_birds = 128
         uword[num_birds] birdX
         uword[num_birds] birdY
         bool[num_birds] xDir
         bool[num_birds] yDir
+        ubyte[num_birds] birdFrame
         ubyte k = 0
         for k in 0 to num_birds-1
         {
@@ -48,50 +50,54 @@ zsmkit_lib:
             birdY[k] = 10 + (math.rndw() % 450)
             xDir[k] = (math.rnd() > 120)
             yDir[k] = (math.rnd() > 120)
+            birdFrame[k] = math.rnd() % 8
             ; bird sprites are 16x16, 8bpp, and between layer 0 and layer 1
             sprite.setup(k, %00000101, %00011000, 0)
             sprite.position(k, birdX[k], birdY[k])
             sprite.flips(k, xDir[k])
+            set_sprite_frame(k, birdFrame[k])
         }
 
         ; setup zsmkit and start the music playing
         init_engine(zsmkit_bank)
         zsm_setfile(0, iso:"TFV.ZSM")
         zsm_play(0)
+        ; call zsm_tick from irq handler
+        sys.set_irq(&zsm_tick, true)
 
         bool paused = false
         uword oldjoy = $ffff
 
-        ubyte i = 0
-        repeat {
-            ubyte j = 0
-            for j in 0 to num_birds-1
+        repeat
+        {
+            ; only update bird sprites when not paused
+            if (not paused)
             {
-                ; write the current frame and position to the sprite registers
-                set_sprite_frame(j, i)
-                sprite.position(j, birdX[j], birdY[j])
-
-                ; update bird position and handle fliping on X as needed
-                if (xDir[j]) birdX[j]++ else birdX[j]--
-                if (yDir[j]) birdY[j]++ else birdY[j]--
-                if (birdX[j] > 620 or birdX[j] < 10)
+                ubyte j = 0
+                for j in 0 to num_birds-1
                 {
-                    xDir[j] = not xDir[j]
-                    sprite.flips(j, xDir[j])
-                }
-                if (birdY[j] > 460 or birdY[j] < 10) yDir[j] = not yDir[j]
+                    ; write the current frame and position to the sprite registers
+                    set_sprite_frame(j, birdFrame[j])
+                    sprite.position(j, birdX[j], birdY[j])
 
-                ; need to call this once in the pool if num_birds is greater than 80
-                if (num_birds > 80 and j == num_birds>>1)
-                {
-                    zsm_tick()
-                    zsm_fill_buffers()
+                    ; update bird position and handle fliping on X as needed
+                    if (xDir[j]) birdX[j]++ else birdX[j]--
+                    if (yDir[j]) birdY[j]++ else birdY[j]--
+                    if (birdX[j] > 620 or birdX[j] < 10)
+                    {
+                        xDir[j] = not xDir[j]
+                        sprite.flips(j, xDir[j])
+                    }
+                    if (birdY[j] > 460 or birdY[j] < 10)
+                    {
+                        yDir[j] = not yDir[j]
+                    }
+
+                    ; next frame and wrap from 7 back to 0
+                    birdFrame[j]++
+                    birdFrame[j] %= 8
                 }
             }
-
-            ; next frame and wrap from 7 back to 0
-            i++
-            if (i > 7) i = 0
 
             ; handle pausing music when pressing enter
             uword newjoy = cx16.joystick_get2(0)
@@ -115,8 +121,7 @@ zsmkit_lib:
 
             sys.waitvsync()
 
-            ; update zsmkit
-            zsm_tick()
+            ; update zsmkit streaming buffers
             zsm_fill_buffers()
         }
     }
