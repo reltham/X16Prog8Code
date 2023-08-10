@@ -1,0 +1,8 @@
+
+GalaX16/.idea/*
+Tests/.idea/*
+*.asm
+*.prg
+*.vice-mon-list
+*.bat
+*.img
