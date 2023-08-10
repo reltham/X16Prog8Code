@@ -1,4 +1,5 @@
 # GalaX16
+This is the beginning of a Galaga like game for the Commander X16.
 
 The contents of the GFX, SFX, and MUSIC folders should be placed into the SDCARD (or image file for the emulator). The files should just be in the root folder.
 
