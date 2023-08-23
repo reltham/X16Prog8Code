@@ -32,24 +32,25 @@ zsmkit_lib:
     {
 
         txt.home()
-        txt.print("\nsprite test\n\n")
+        txt.print(iso:"\nGALAX16\n\n")
 
+        ; init joystick, use keyboard one for now, need to detect joystick 1
         joystick.active_joystick = 0
         joystick.clear()
 
-        ; load our sprites into VERA
-        ;void diskio.vload("birdsprites.bin", 0, $a000)
-        void diskio.vload_raw("galsprites.pal", 1, $fa00)
-        void diskio.vload_raw("galsprites.bin", 0, sprite_data_addr)
+        ; load our sprites into VERA, the palette is loaded right into the palette registers at $fa00
+        void diskio.vload_raw(iso:"GALSPRITES.PAL", 1, $fa00)
+        void diskio.vload_raw(iso:"GALSPRITES.BIN", 0, sprite_data_addr)
 
         ; enable sprites
         cx16.VERA_DC_VIDEO = cx16.VERA_DC_VIDEO | %01000000
 
-        ; setup bird sprites and their starting position, direction, and frame
+        ; setup sprites and their starting position, direction, and frame
         const  ubyte  num_ships = 64
         word[num_ships] shipX
         word[num_ships] shipY
         ubyte[num_ships] pathIndex
+        ubyte[num_ships] whichPath = 1
         ubyte k = 0
         word offsetX = 0
         word offsetY = 128
@@ -66,7 +67,7 @@ zsmkit_lib:
             repeat 1
             {
                 pathIndex[k] = q % 38
-                SpritePathTables.GetPathEntry(1, pathIndex[k], ((k>>3) % 9) << 1, &pathEntry)
+                SpritePathTables.GetPathEntry(whichPath[k], pathIndex[k], ((k>>3) % 9) << 1, &pathEntry)
                 word tempXa = pathEntry[0] as word
                 word tempYa = pathEntry[1] as word
                 offsetX += tempXa
@@ -75,22 +76,22 @@ zsmkit_lib:
             }
             shipX[k] = 10 + offsetX
             shipY[k] = 10 + offsetY
-            ; bird sprites are 16x16, 8bpp, and between layer 0 and layer 1
+            ; sprites are 16x16, 8bpp, and between layer 0 and layer 1
             sprites.setup(k, %00000101, %00001000, 0)
             sprites.position(k, shipX[k] as uword, shipY[k] as uword)
             set_sprite_frame(k, pathEntry[3] as ubyte, 128)
             sprites.flips(k, pathEntry[4] as ubyte)
         }
 
-        ; setup zsmkit and start the music playing
+        ; setup zsmkit
         zsmkit.zsm_init_engine(zsmkit_bank)
         ;zsmkit.zsm_setfile(0, iso:"TFV_PCM.ZSM")
-        ;zsmkit.zsm_setfile(0, iso:"TFVRISESYNC.ZSM")
-        zsmkit.zsm_setfile(0, iso:"SHOVEL_S.ZSM")
+        zsmkit.zsm_setfile(0, iso:"TFVRISESYNC.ZSM")
+        ;zsmkit.zsm_setfile(0, iso:"SHOVEL_S.ZSM")
         cx16.rambank(2)
-        ;void diskio.load_raw(iso:"TFV_PCM.ZSM", $a000)
         uword next_free = zsmkit.zsm_loadpcm(0, $a000)
 
+        ; load 2 zcm's into memory
         ubyte zcmbank = cx16.getrambank() + 1
         cx16.rambank(zcmbank)
         void diskio.load_raw(iso:"1.ZCM", $a000)
@@ -103,12 +104,16 @@ zsmkit_lib:
         zsmkit.zcm_setmem(0, $a000)
         cx16.rambank(zcmbank)
         zsmkit.zcm_setmem(1, $a000)
-        ;cx16.rambank(2)
-        ;zsmkit.zsm_setmem(0, $a000)
+        
+        ; start the music playing
         zsmkit.zsm_play(0)
         zsmkit.zsm_setcb(0, &zsm_callback_handler)
+
         ; call zsm_tick from irq handler
-        sys.set_irq(&zsmkit.zsm_tick, true)
+        zsmkit.zsmkit_setisr()
+        
+        ; set back to kernel bank
+        cx16.rambank(0)
 
         bool paused = false
         bool oldup = false
@@ -125,7 +130,6 @@ zsmkit_lib:
         bool oldfire_l = false
         bool oldfire_r = false
         ubyte repeatIndex = 0
-        ubyte[num_ships] whichPath = 1
         byte doShips = 0
 
         repeat
