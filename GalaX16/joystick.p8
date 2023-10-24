@@ -18,18 +18,24 @@ joystick
 
     sub scan()
     {
+       ;   .A, byte 0:      | 7 | 6 | 5 | 4 | 3 | 2 | 1 | 0 |
+       ;               SNES | B | Y |SEL|STA|UP |DN |LT |RT |
+
+       ;   .X, byte 1:      | 7 | 6 | 5 | 4 | 3 | 2 | 1 | 0 |
+       ;               SNES | A | X | L | R | 1 | 1 | 1 | 1 |
+
         ; bits are 0 when a button is down/pressed
         cx16.r1 = cx16.joystick_get2(active_joystick)
-        fire_a = lsb(cx16.r1) & %10000000 == 0
-        fire_x = lsb(cx16.r1) & %01000000 == 0
+        fire_b = lsb(cx16.r1) & %10000000 == 0
+        fire_y = lsb(cx16.r1) & %01000000 == 0
         select = lsb(cx16.r1) & %00100000 == 0
         start  = lsb(cx16.r1) & %00010000 == 0
         up =     lsb(cx16.r1) & %00001000 == 0
         down =   lsb(cx16.r1) & %00000100 == 0
         left =   lsb(cx16.r1) & %00000010 == 0
         right =  lsb(cx16.r1) & %00000001 == 0
-        fire_b = msb(cx16.r1) & %10000000 == 0
-        fire_y = msb(cx16.r1) & %01000000 == 0
+        fire_a = msb(cx16.r1) & %10000000 == 0
+        fire_x = msb(cx16.r1) & %01000000 == 0
         fire_l = msb(cx16.r1) & %00100000 == 0
         fire_r = msb(cx16.r1) & %00010000 == 0
         ; true for any of the fire buttons being down/pressed

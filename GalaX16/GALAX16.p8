@@ -35,7 +35,7 @@ zsmkit_lib:
         txt.print(iso:"\nGALAX16\n\n")
 
         ; init joystick, use keyboard one for now, need to detect joystick 1
-        joystick.active_joystick = 0
+        joystick.active_joystick = 1
         joystick.clear()
 
         ; load our sprites into VERA, the palette is loaded right into the palette registers at $fa00
@@ -226,60 +226,70 @@ zsmkit_lib:
                 zsmkit.zsm_close(1)
                 zsmkit.zsm_setfile(1, iso:"UFO_16.ZSM")
                 zsmkit.zsm_play(1)
+                txt.print("pressed up\n")
             }
             if (newdown != olddown and newdown == true)
             {
                 zsmkit.zsm_close(2)
                 zsmkit.zsm_setfile(2, iso:"UFO_14.ZSM")
                 zsmkit.zsm_play(2)
+                txt.print("pressed down\n")
             }
-            if (newup != oldleft and newleft == true)
+            if (newleft != oldleft and newleft == true)
             {
                 zsmkit.zsm_close(3)
                 zsmkit.zsm_setfile(3, iso:"BOOM_15.ZSM")
                 zsmkit.zsm_play(3)
+                txt.print("pressed left\n")
             }
-            if (newup != oldright and newright == true)
+            if (newright != oldright and newright == true)
             {
                 zsmkit.zsm_close(1)
                 zsmkit.zsm_setfile(1, iso:"PEW_16.ZSM")
                 zsmkit.zsm_play(1)
+                txt.print("pressed right\n")
             }
             if (newfire_a != oldfire_a and newfire_a == true)
             {
                 zsmkit.zsm_close(3)
                 zsmkit.zsm_setfile(3, iso:"SWEEPDOWNL_15.ZSM")
                 zsmkit.zsm_play(3)
+                txt.print("pressed a\n")
             }
             if (newfire_b != oldfire_b and newfire_b == true)
             {
                 zsmkit.zsm_close(3)
                 zsmkit.zsm_setfile(3, iso:"SWEEPUP_15.ZSM")
                 zsmkit.zsm_play(3)
+                txt.print("pressed b\n")
             }
             if (newfire_l != oldfire_l and newfire_l == true)
             {
                 zsmkit.zsm_close(1)
                 zsmkit.zsm_setfile(1, iso:"WIBBLE_16.ZSM")
                 zsmkit.zsm_play(1)
+                txt.print("pressed ls\n")
             }
             if (newfire_r != oldfire_r and newfire_r == true)
             {
                 zsmkit.zsm_close(2)
                 zsmkit.zsm_setfile(2, iso:"UFO_14.ZSM")
                 zsmkit.zsm_play(2)
+                txt.print("pressed rs\n")
             }
             if (newfire_x != oldfire_x and newfire_x == true)
             {
                 zsmkit.zsm_close(3)
                 zsmkit.zsm_setfile(3, iso:"BOOM_15.ZSM")
                 zsmkit.zsm_play(3)
+                txt.print("pressed x\n")
             }
             if (newfire_y != oldfire_y and newfire_y == true)
             {
                 zsmkit.zsm_close(1)
                 zsmkit.zsm_setfile(1, iso:"PEW_16.ZSM")
                 zsmkit.zsm_play(1)
+                txt.print("pressed y\n")
             }
             oldup = newup
             olddown = newdown
