@@ -4,9 +4,10 @@
 %import syslib
 %import palette
 %import zsmkit
-%import sprites
+%import galax_sprites
 %import joystick
 %import SpritePathTables
+%import Entity
 %zeropage basicsafe
 
 ; "issues":
@@ -24,12 +25,13 @@ zsmkit_lib:
     bool loopchanged = false
     bool beat = false
     uword loop_number = 0
-
-    ; sprites are loaded into VERA memory at $8000
-    const uword sprite_data_addr = $8000
+    
+    const ubyte game_banks_start = 2
+    const ubyte zsmdata_bank_start = 3
 
     sub start()
     {
+        void cx16.set_screen_mode(0)
 
         txt.home()
         txt.print(iso:"\nGALAX16\n\n")
@@ -40,15 +42,13 @@ zsmkit_lib:
 
         ; load our sprites into VERA, the palette is loaded right into the palette registers at $fa00
         void diskio.vload_raw(iso:"GALSPRITES.PAL", 1, $fa00)
-        void diskio.vload_raw(iso:"GALSPRITES.BIN", 0, sprite_data_addr)
+        void diskio.vload_raw(iso:"GALSPRITES.BIN", 0, Entity.sprite_data_addr)
 
         ; enable sprites
         cx16.VERA_DC_VIDEO = cx16.VERA_DC_VIDEO | %01000000
-
+        
         ; setup sprites and their starting position, direction, and frame
-        const  ubyte  num_ships = 64
-        word[num_ships] shipX
-        word[num_ships] shipY
+        const  ubyte  num_ships = 128
         ubyte[num_ships] pathIndex
         ubyte[num_ships] whichPath = 1
         ubyte k = 0
@@ -56,40 +56,34 @@ zsmkit_lib:
         word offsetY = 128
         ubyte q = 0
         byte[5] pathEntry
+
+        Entity.Begin()
         for k in 0 to num_ships-1
         {
-            if (k > 0 and k % 8 == 0)
+            if (k > 0 and k % 16 == 0)
             {
-                offsetY = 128 - ((k >> 3) * 16)
-                offsetX = (k >> 3) * 24
+                offsetY = 128 - ((k >> 4) * 16)
+                offsetX = (k >> 4) * 24
                 q = 0
             }
-            repeat 1
-            {
-                pathIndex[k] = q % 38
-                SpritePathTables.GetPathEntry(whichPath[k], pathIndex[k], ((k>>3) % 9) << 1, &pathEntry)
-                word tempXa = pathEntry[0] as word
-                word tempYa = pathEntry[1] as word
-                offsetX += tempXa
-                offsetY += tempYa
-                q++
-            }
-            shipX[k] = 10 + offsetX
-            shipY[k] = 10 + offsetY
-            ; sprites are 16x16, 8bpp, and between layer 0 and layer 1
-            sprites.setup(k, %00000101, %00001000, 0)
-            sprites.position(k, shipX[k] as uword, shipY[k] as uword)
-            set_sprite_frame(k, pathEntry[3] as ubyte, 128)
-            sprites.flips(k, pathEntry[4] as ubyte)
+            pathIndex[k] = q % 38
+            SpritePathTables.GetPathEntry(whichPath[k], pathIndex[k], ((k>>4) % 9) << 1, &pathEntry)
+            offsetX += pathEntry[0] as word
+            offsetY += pathEntry[1] as word
+            q++
+
+            Entity.Add(k, 10 + offsetX as uword, 10 + offsetY as uword, pathEntry[3] as ubyte, pathEntry[4] as ubyte, Entity.state_static, 0)
+            Entity.UpdateSprite(k)
         }
+        Entity.End()
 
         ; setup zsmkit
         zsmkit.zsm_init_engine(zsmkit_bank)
         ;zsmkit.zsm_setfile(0, iso:"TFV_PCM.ZSM")
         zsmkit.zsm_setfile(0, iso:"TFVRISESYNC.ZSM")
         ;zsmkit.zsm_setfile(0, iso:"SHOVEL_S.ZSM")
-        cx16.rambank(2)
-        uword next_free = zsmkit.zsm_loadpcm(0, $a000)
+        cx16.rambank(zsmdata_bank_start)
+        void zsmkit.zsm_loadpcm(0, $a000)
 
         ; load 2 zcm's into memory
         ubyte zcmbank = cx16.getrambank() + 1
@@ -106,6 +100,7 @@ zsmkit_lib:
         zsmkit.zcm_setmem(1, $a000)
         
         ; start the music playing
+        zsmkit.zsm_setatten(0, 20)
         zsmkit.zsm_play(0)
         zsmkit.zsm_setcb(0, &zsm_callback_handler)
 
@@ -129,7 +124,6 @@ zsmkit_lib:
         bool oldfire_y = false
         bool oldfire_l = false
         bool oldfire_r = false
-        ubyte repeatIndex = 0
         byte doShips = 0
 
         repeat
@@ -143,47 +137,31 @@ zsmkit_lib:
             ; only update sprites when not paused
             if (not paused)
             {
-                repeatIndex++
                 ubyte j = 0
+                Entity.Begin()
                 for j in 0 to num_ships-1
                 {
-                    ubyte shipIndex = ((j>>3) % 9) << 1
-                    if doShips > 0
+                    ubyte shipIndex = ((j>>4) % 9) << 1
+                    if (doShips > 0)
                     {
                         shipIndex++
                     }
                     SpritePathTables.GetPathEntry(whichPath[j], pathIndex[j], shipIndex, &pathEntry)
 
-                    if repeatIndex >= 1
+                    Entity.UpdatePosition(j, pathEntry[0] as word, pathEntry[1] as word)
+                    Entity.SetSpriteIndex(j, pathEntry[3] as ubyte)
+                    Entity.SetSpriteSetup(j, pathEntry[4] as ubyte)
+                    Entity.UpdateSprite(j)
+
+                    pathIndex[j]++
+                    if (SpritePathTables.CheckEnd(whichPath[j], pathIndex[j]))
                     {
-                        shipX[j] += pathEntry[0] as word
-                        shipY[j] += pathEntry[1] as word
-                    }
-                    sprites.position(j, shipX[j] as uword, shipY[j] as uword)
-
-                    set_sprite_frame(j, pathEntry[3] as ubyte, 128)
-                    sprites.flips(j, pathEntry[4] as ubyte)
-
-                    if (shipX[j] > 639) shipX[j] -= 656
-                    if (shipX[j] < -16) shipX[j] += 656
-                    if (shipY[j] > 479) shipY[j] -= 496
-                    if (shipY[j] < -16) shipY[j] += 496
-
-                    if repeatIndex >= 1
-                    {
-                        pathIndex[j]++
-                        if (SpritePathTables.CheckEnd(whichPath[j], pathIndex[j]))
-                        {
-                            pathIndex[j] = 0
-                            ;whichPath[j] = not whichPath[j]
-                        }
+                        pathIndex[j] = 0
+                        ;whichPath[j] = (not (whichPath[j] as bool)) as ubyte
                     }
                 }
-                if (repeatIndex >= 1)
-                {
-                    repeatIndex = 0
-                    if (doShips > 0) doShips--
-                }
+                Entity.End()
+                if (doShips > 0) doShips--
             }
 
             ; handle pausing music when pressing enter
@@ -329,19 +307,11 @@ zsmkit_lib:
             beq _sync
             rts
 _loop:
-            inc p8_loopchanged
+            inc p8v_loopchanged
             rts
 _sync:
-            inc p8_beat
+            inc p8v_beat
             rts
         }}
-    }
-
-
-    ; select which sprite image to display
-    sub set_sprite_frame(ubyte spriteNum, ubyte index, uword spriteSize)
-    {
-        ; calculate address of the sprite's memory from index and spriteSize
-        sprites.set_address(spriteNum, 0, sprite_data_addr + (index as uword * spriteSize))
     }
 }

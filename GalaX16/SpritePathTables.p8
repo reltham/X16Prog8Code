@@ -110,14 +110,19 @@ SpritePathTables
             2, 1,
             1, 1 ]
 
-        ubyte[] shipSpriteOffset = [ 1, 33, 9, 25, 41, 57, 49, 65, 73, 89, 81, 97, 105,
-                                    121,
-                                    137,
-                                    153,
-                                    169,
-                                    185,
-                                    17]
+        ; first number of pair is the ship in normal colors, the second number is the "lit up" colors 
+        ubyte[] shipSpriteOffset = [  1,  33,   ; boss green
+                                     17,  33,   ; boss blue
+                                     49,  65,   ; butterfly
+                                     81,  97,   ; bee
+                                      9,  25,   ; scorpion
+                                     41,  57,   ; green ship
+                                     73,  89,   ; galaxian
+                                    105, 121,   ; dragonfly
+                                    137, 153,   ; enterprise
+                                    169, 185 ]  ; player ship
 
+        ; check to see if we hit the end of the path
         sub CheckEnd(ubyte pathIndex, ubyte pathEntry) -> bool
         {
             ubyte pathOffset = pathEntry * 3
@@ -128,6 +133,9 @@ SpritePathTables
             return false
         }
 
+        ; fill up a "struct" with path data and ship sprite data
+        ; the path data is the x and y offsets for this step in the path, and the rotation as a number from 0 to 23
+        ; the ship sprite data gives the sprite index and flip bits
         sub GetPathEntry(ubyte pathIndex, ubyte pathEntry, ubyte shipIndex, uword Destination)
         {
             ubyte pathOffset = pathEntry * 3
