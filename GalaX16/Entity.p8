@@ -13,13 +13,15 @@
 
 Entity
 {
-    const ubyte entities_bank = 2
     const ubyte entity_x = 0
     const ubyte entity_y = 2
     const ubyte entity_sprite_index = 4
     const ubyte entity_sprite_setup = 5
-    const ubyte entity_state = 6
-    const ubyte entity_state_data = 7
+    const ubyte entity_ship_index = 6
+    const ubyte entity_state = 7
+    const ubyte entity_state_data = 8 ; state data is up to 8 bytes
+    
+    const ubyte entities_bank = 2
     const uword entities = $a000
     
     const ubyte state_static = 0
@@ -41,32 +43,34 @@ Entity
         cx16.rambank(0)
     }
 
-    sub Add(ubyte entity_index, uword xPos, uword yPos, ubyte sprite_index, ubyte sprite_setup, ubyte state, ubyte state_data)
+    sub Add(ubyte entity_index, uword xPos, uword yPos, ubyte ship_index, ubyte state, ubyte state_data)
     {
-        uword curr_entity = entities + (entity_index as uword << 3)
+        uword curr_entity = entities + (entity_index as uword << 4)
         pokew(curr_entity + entity_x, xPos as uword)
         pokew(curr_entity + entity_y, yPos as uword)
-        curr_entity[entity_sprite_index] = sprite_index
-        curr_entity[entity_sprite_setup] = sprite_setup
+        curr_entity[entity_sprite_index] = 0
+        curr_entity[entity_sprite_setup] = 0
         curr_entity[entity_state] = state
         curr_entity[entity_state_data] = state_data
+        curr_entity[entity_state_data + 1] = 0
+        curr_entity[entity_ship_index] = ship_index
     }
-    
+
     sub SetSpriteIndex(ubyte entity_index, ubyte sprite_index)
     {
-        uword curr_entity = entities + (entity_index as uword << 3)
+        uword curr_entity = entities + (entity_index as uword << 4)
         curr_entity[entity_sprite_index] = sprite_index
     }
 
     sub SetSpriteSetup(ubyte entity_index, ubyte sprite_setup)
     {
-        uword curr_entity = entities + (entity_index as uword << 3)
+        uword curr_entity = entities + (entity_index as uword << 4)
         curr_entity[entity_sprite_setup] = sprite_setup
     }
 
     sub UpdatePosition(ubyte entity_index, word xPos, word yPos)
     {
-        uword curr_entity = entities + (entity_index as uword << 3)
+        uword curr_entity = entities + (entity_index as uword << 4)
         
         word xPosA = peekw(curr_entity + entity_x) + xPos
         word yPosA = peekw(curr_entity + entity_y) + yPos
@@ -83,14 +87,34 @@ Entity
     
     sub SetState(ubyte entity_index, ubyte state, ubyte state_data)
     {
-        uword curr_entity = entities + (entity_index as uword << 3)
+        uword curr_entity = entities + (entity_index as uword << 4)
         curr_entity[entity_state] = state
         curr_entity[entity_state_data] = state_data
     }
     
+    sub UpdateEntity(ubyte entity_index)
+    {
+        uword curr_entity = entities + (entity_index as uword << 4)
+
+        if (curr_entity[entity_state] == state_onpath)
+        {
+            byte[5] pathEntry
+            SpritePathTables.GetPathEntry(curr_entity[entity_state_data], curr_entity[entity_state_data+1], curr_entity[entity_ship_index], &pathEntry)
+            UpdatePosition(entity_index, pathEntry[0] as word, pathEntry[1] as word)
+            curr_entity[entity_sprite_index] = pathEntry[3] as ubyte
+            curr_entity[entity_sprite_setup] = pathEntry[4] as ubyte
+            
+            curr_entity[entity_state_data+1]++
+            if (SpritePathTables.CheckEnd(curr_entity[entity_state_data], curr_entity[entity_state_data+1]))
+            {
+                curr_entity[entity_state_data+1] = 0
+            }
+        }
+    }
+    
     sub UpdateSprite(ubyte entity_index)
     {
-        uword curr_entity = entities + (entity_index as uword << 3)
+        uword curr_entity = entities + (entity_index as uword << 4)
 
         ; sprites are 16x16, 8bpp, and between layer 0 and layer 1
         sprites.setup(entity_index, %00000101, %00001000, 0)

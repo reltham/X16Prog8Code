@@ -8,6 +8,7 @@
 %import joystick
 %import SpritePathTables
 %import Entity
+%import InputHandler
 %zeropage basicsafe
 
 ; "issues":
@@ -35,10 +36,8 @@ zsmkit_lib:
 
         txt.home()
         txt.print(iso:"\nGALAX16\n\n")
-
-        ; init joystick, use keyboard one for now, need to detect joystick 1
-        joystick.active_joystick = 1
-        joystick.clear()
+        
+        InputHandler.Init()
 
         ; load our sprites into VERA, the palette is loaded right into the palette registers at $fa00
         void diskio.vload_raw(iso:"GALSPRITES.PAL", 1, $fa00)
@@ -49,31 +48,15 @@ zsmkit_lib:
         
         ; setup sprites and their starting position, direction, and frame
         const  ubyte  num_ships = 128
-        ubyte[num_ships] pathIndex
-        ubyte[num_ships] whichPath = 1
-        ubyte k = 0
-        word offsetX = 0
-        word offsetY = 128
-        ubyte q = 0
-        byte[5] pathEntry
-
+        ubyte k
         Entity.Begin()
         for k in 0 to num_ships-1
         {
-            if (k > 0 and k % 16 == 0)
-            {
-                offsetY = 128 - ((k >> 4) * 16)
-                offsetX = (k >> 4) * 24
-                q = 0
-            }
-            pathIndex[k] = q % 38
-            SpritePathTables.GetPathEntry(whichPath[k], pathIndex[k], ((k>>4) % 9) << 1, &pathEntry)
-            offsetX += pathEntry[0] as word
-            offsetY += pathEntry[1] as word
-            q++
+            uword offsetY = 16 + (k / 16) * 16 
+            uword offsetX = 16 + (k % 16) * 16
 
-            Entity.Add(k, 10 + offsetX as uword, 10 + offsetY as uword, pathEntry[3] as ubyte, pathEntry[4] as ubyte, Entity.state_static, 0)
-            Entity.UpdateSprite(k)
+            Entity.Add(k, offsetX, offsetY, ((k>>4) % 9) << 1, Entity.state_onpath, k%2)
+            Entity.UpdateEntity(k)
         }
         Entity.End()
 
@@ -110,20 +93,6 @@ zsmkit_lib:
         ; set back to kernel bank
         cx16.rambank(0)
 
-        bool paused = false
-        bool oldup = false
-        bool olddown = false
-        bool oldleft = false
-        bool oldright = false
-        bool oldstart = false
-        bool oldselect = false
-        bool oldfire = false
-        bool oldfire_a = false
-        bool oldfire_b = false
-        bool oldfire_x = false
-        bool oldfire_y = false
-        bool oldfire_l = false
-        bool oldfire_r = false
         byte doShips = 0
 
         repeat
@@ -135,160 +104,27 @@ zsmkit_lib:
             }
 
             ; only update sprites when not paused
-            if (not paused)
+            if (not InputHandler.IsPaused())
             {
                 ubyte j = 0
                 Entity.Begin()
                 for j in 0 to num_ships-1
                 {
-                    ubyte shipIndex = ((j>>4) % 9) << 1
-                    if (doShips > 0)
-                    {
-                        shipIndex++
-                    }
-                    SpritePathTables.GetPathEntry(whichPath[j], pathIndex[j], shipIndex, &pathEntry)
-
-                    Entity.UpdatePosition(j, pathEntry[0] as word, pathEntry[1] as word)
-                    Entity.SetSpriteIndex(j, pathEntry[3] as ubyte)
-                    Entity.SetSpriteSetup(j, pathEntry[4] as ubyte)
+                    Entity.UpdateEntity(j)
                     Entity.UpdateSprite(j)
-
-                    pathIndex[j]++
-                    if (SpritePathTables.CheckEnd(whichPath[j], pathIndex[j]))
-                    {
-                        pathIndex[j] = 0
-                        ;whichPath[j] = (not (whichPath[j] as bool)) as ubyte
-                    }
                 }
                 Entity.End()
                 if (doShips > 0) doShips--
             }
 
-            ; handle pausing music when pressing enter
-            joystick.scan()
-            bool newup = joystick.up
-            bool newdown = joystick.down
-            bool newleft = joystick.left
-            bool newright = joystick.right
-            bool newstart = joystick.start
-            bool newselect = joystick.select
-            bool newfire = joystick.fire
-            bool newfire_a = joystick.fire_a
-            bool newfire_b = joystick.fire_b
-            bool newfire_x = joystick.fire_x
-            bool newfire_y = joystick.fire_y
-            bool newfire_l = joystick.fire_l
-            bool newfire_r = joystick.fire_r
-            if (newstart != oldstart and newstart == true)
-            {
-                zsmkit.zcm_stop()
-                if (paused)
-                {
-                    zsmkit.zsm_play(0)
-                    paused = false
-                    zsmkit.zcm_play(1, 8)
-                }
-                else
-                {
-                    zsmkit.zsm_stop(0)
-                    paused = true
-                    zsmkit.zcm_play(0, 8)
-                }
-            }
-            if (newselect != oldselect and newselect == true)
-            {
-                txt.print("pressed select\n")
-            }
-            if (newup != oldup and newup == true)
-            {
-                zsmkit.zsm_close(1)
-                zsmkit.zsm_setfile(1, iso:"UFO_16.ZSM")
-                zsmkit.zsm_play(1)
-                txt.print("pressed up\n")
-            }
-            if (newdown != olddown and newdown == true)
-            {
-                zsmkit.zsm_close(2)
-                zsmkit.zsm_setfile(2, iso:"UFO_14.ZSM")
-                zsmkit.zsm_play(2)
-                txt.print("pressed down\n")
-            }
-            if (newleft != oldleft and newleft == true)
-            {
-                zsmkit.zsm_close(3)
-                zsmkit.zsm_setfile(3, iso:"BOOM_15.ZSM")
-                zsmkit.zsm_play(3)
-                txt.print("pressed left\n")
-            }
-            if (newright != oldright and newright == true)
-            {
-                zsmkit.zsm_close(1)
-                zsmkit.zsm_setfile(1, iso:"PEW_16.ZSM")
-                zsmkit.zsm_play(1)
-                txt.print("pressed right\n")
-            }
-            if (newfire_a != oldfire_a and newfire_a == true)
-            {
-                zsmkit.zsm_close(3)
-                zsmkit.zsm_setfile(3, iso:"SWEEPDOWNL_15.ZSM")
-                zsmkit.zsm_play(3)
-                txt.print("pressed a\n")
-            }
-            if (newfire_b != oldfire_b and newfire_b == true)
-            {
-                zsmkit.zsm_close(3)
-                zsmkit.zsm_setfile(3, iso:"SWEEPUP_15.ZSM")
-                zsmkit.zsm_play(3)
-                txt.print("pressed b\n")
-            }
-            if (newfire_l != oldfire_l and newfire_l == true)
-            {
-                zsmkit.zsm_close(1)
-                zsmkit.zsm_setfile(1, iso:"WIBBLE_16.ZSM")
-                zsmkit.zsm_play(1)
-                txt.print("pressed ls\n")
-            }
-            if (newfire_r != oldfire_r and newfire_r == true)
-            {
-                zsmkit.zsm_close(2)
-                zsmkit.zsm_setfile(2, iso:"UFO_14.ZSM")
-                zsmkit.zsm_play(2)
-                txt.print("pressed rs\n")
-            }
-            if (newfire_x != oldfire_x and newfire_x == true)
-            {
-                zsmkit.zsm_close(3)
-                zsmkit.zsm_setfile(3, iso:"BOOM_15.ZSM")
-                zsmkit.zsm_play(3)
-                txt.print("pressed x\n")
-            }
-            if (newfire_y != oldfire_y and newfire_y == true)
-            {
-                zsmkit.zsm_close(1)
-                zsmkit.zsm_setfile(1, iso:"PEW_16.ZSM")
-                zsmkit.zsm_play(1)
-                txt.print("pressed y\n")
-            }
-            oldup = newup
-            olddown = newdown
-            oldleft = newleft
-            oldright = newright
-            oldstart = newstart
-            oldselect = newselect
-            oldfire = newfire
-            oldfire_a = newfire_a
-            oldfire_b = newfire_b
-            oldfire_x = newfire_x
-            oldfire_y = newfire_y
-            oldfire_l = newfire_l
-            oldfire_r = newfire_r
+            InputHandler.DoScan();
 
             sys.waitvsync()
 
             ; update zsmkit streaming buffers
             zsmkit.zsm_fill_buffers()
 
-            if loopchanged
+            if (loopchanged)
             {
                 loop_number++
                 loopchanged = false

@@ -150,8 +150,8 @@ SpritePathTables
                 }
              1 -> {
                 @(Destination) = path2[pathOffset] as ubyte
-                @(Destination+1) = path2[pathOffset + 1] as ubyte
-                @(Destination+2) = path2[pathOffset + 2] as ubyte
+                @(Destination+1) = (path2[pathOffset + 1] >> 1) as ubyte
+                @(Destination+2) = (path2[pathOffset + 2] >> 1) as ubyte 
                 ubyte shipRotOffset2 = path2[pathOffset + 2] as ubyte << 1
                 @(Destination+3) = shipRotationTable[shipRotOffset2] + shipSpriteOffset[shipIndex]
                 @(Destination+4) = shipRotationTable[shipRotOffset2 + 1]
