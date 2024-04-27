@@ -20,6 +20,18 @@ Entity
     const ubyte entity_ship_index = 6
     const ubyte entity_state = 7
     const ubyte entity_state_data = 8 ; state data is up to 8 bytes
+
+    ; when state is static state data is not used
+
+    ; when state is formation state data is as follows
+    const ubyte entity_state_formation_slot = 8
+    
+    ; when state is onpath state data is as follows
+    const ubyte entity_state_path = 8
+    const ubyte entity_state_path_offset = 9
+    const ubyte entity_state_path_repeat = 10
+    const ubyte entity_state_path_return_index = 11
+    const ubyte entity_state_path_return = 12 ; 4 bytes to hold path indices for gosub/return stuff (can only nest 4 deep)
     
     const ubyte entities_bank = 2
     const uword entities = $a000
@@ -53,6 +65,7 @@ Entity
         curr_entity[entity_state] = state
         curr_entity[entity_state_data] = state_data
         curr_entity[entity_state_data + 1] = 0
+        curr_entity[entity_state_data + 2] = 0
         curr_entity[entity_ship_index] = ship_index
     }
 
@@ -99,15 +112,24 @@ Entity
         if (curr_entity[entity_state] == state_onpath)
         {
             byte[5] pathEntry
-            SpritePathTables.GetPathEntry(curr_entity[entity_state_data], curr_entity[entity_state_data+1], curr_entity[entity_ship_index], &pathEntry)
+            SpritePathTables.GetPathEntry(curr_entity[entity_state_data], curr_entity[entity_state_path_offset], curr_entity[entity_ship_index], &pathEntry)
             UpdatePosition(entity_index, pathEntry[0] as word, pathEntry[1] as word)
             curr_entity[entity_sprite_index] = pathEntry[3] as ubyte
             curr_entity[entity_sprite_setup] = pathEntry[4] as ubyte
             
-            curr_entity[entity_state_data+1]++
-            if (SpritePathTables.CheckEnd(curr_entity[entity_state_data], curr_entity[entity_state_data+1]))
+            if (curr_entity[entity_state_path_repeat] == 0)
             {
-                curr_entity[entity_state_data+1] = 0
+                curr_entity[entity_state_path_repeat] = pathEntry[2] as ubyte
+            }
+            curr_entity[entity_state_path_repeat]--
+            if (curr_entity[entity_state_path_repeat] == 0)
+            {
+                curr_entity[entity_state_path_offset]++
+
+                if (SpritePathTables.CheckEnd(curr_entity[entity_state_data], curr_entity[entity_state_path_offset]))
+                {
+                    curr_entity[entity_state_path_offset] = 0
+                }
             }
         }
     }
