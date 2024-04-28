@@ -23,6 +23,7 @@ sprites
         cx16.vpoke(1, $fc07 + offset, temp1)
     }
 
+/*
     ; widthHeightPaletteOffset = (width << 6) | (height << 4) | paletteOffset
     ;  width and height are 2 bits each: 0 to 3 for 0 = 8, 1 = 16, 2 = 32, 3 = 64.
     ;  paletteOffset 4 bits
@@ -51,7 +52,7 @@ sprites
         uword offset = spriteNum as uword << 3
         cx16.vpoke(1, $fc07 + offset, widthHeightPaletteOffset)
     }
-
+*/
     ; set sprites H and V flips
     sub flips(ubyte spriteNum, ubyte VHFlips)
     {

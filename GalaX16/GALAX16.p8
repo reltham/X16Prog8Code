@@ -35,9 +35,10 @@ zsmkit_lib:
         void cx16.set_screen_mode(0)
 
         txt.home()
-        txt.print(iso:"\nGALAX16\n\n")
+        txt.print(iso:"\nGALAX16")
         
         InputHandler.Init()
+        SpritePathTables.Init(game_banks_start);
 
         ; load our sprites into VERA, the palette is loaded right into the palette registers at $fa00
         void diskio.vload_raw(iso:"GALSPRITES.PAL", 1, $fa00)
@@ -52,11 +53,11 @@ zsmkit_lib:
         Entity.Begin()
         for k in 0 to num_ships-1
         {
+            uword offsetX = 128 + (k % 16) * 16
             uword offsetY = 16 + (k / 16) * 16 
-            uword offsetX = 16 + (k % 16) * 16
 
-            Entity.Add(k, offsetX, offsetY, ((k>>4) % 9) << 1, Entity.state_onpath, k%2)
-            Entity.UpdateEntity(k)
+            Entity.Add(k, offsetX, offsetY, ((k>>4) % 9) << 1, Entity.state_onpath, 1) ;k%2)
+            void Entity.UpdateEntity(k)
         }
         Entity.End()
 
@@ -110,7 +111,13 @@ zsmkit_lib:
                 Entity.Begin()
                 for j in 0 to num_ships-1
                 {
-                    Entity.UpdateEntity(j)
+                    if (Entity.UpdateEntity(j) == false)
+                    {
+                        void Entity.UpdateEntity(j)
+                    }
+                }
+                for j in 0 to num_ships-1
+                {
                     Entity.UpdateSprite(j)
                 }
                 Entity.End()
