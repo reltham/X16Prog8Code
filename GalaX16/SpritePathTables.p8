@@ -69,22 +69,6 @@ SpritePathTables
                                 137, 153,   ; enterprise
                                 169, 185 ]  ; player ship
 
-    ; check to see if we hit the end of the path
-/*
-    sub CheckEnd(ubyte pathIndex, ubyte pathEntry) -> bool
-    {
-        if (pathIndex < num_paths)
-        {
-            uword path = peekw(paths + (pathIndex * 2))
-            ubyte pathOffset = pathEntry * 5
-            if (path[pathOffset] == 0 and path[pathOffset+1] == 0)
-            {
-                return true
-            }
-        }
-        return false
-    }
-*/
     ; fill up a "struct" with path data and ship sprite data
     ; the path data is the x and y offsets for this step in the path, and the rotation as a number from 0 to 23
     ; the ship sprite data gives the sprite index and flip bits
@@ -95,11 +79,15 @@ SpritePathTables
             uword path = peekw(paths + (pathIndex * 2))
             ubyte pathOffset = pathEntry * 5
             @(Destination) = path[pathOffset] as ubyte
-            @(Destination+1) = path[pathOffset + 1] as ubyte
-            @(Destination+2) = path[pathOffset + 2] as ubyte
-            @(Destination+3) = path[pathOffset + 3] as ubyte
-            @(Destination+4) = path[pathOffset + 4] as ubyte
-            ubyte shipRotOffset = path[pathOffset + 4] as ubyte << 1
+            pathOffset++
+            @(Destination+1) = path[pathOffset] as ubyte
+            pathOffset++
+            @(Destination+2) = path[pathOffset] as ubyte
+            pathOffset++
+            @(Destination+3) = path[pathOffset] as ubyte
+            pathOffset++
+            @(Destination+4) = path[pathOffset] as ubyte
+            ubyte shipRotOffset = path[pathOffset] as ubyte << 1
             @(Destination+5) = shipRotationTable[shipRotOffset] + shipSpriteOffset[shipIndex]
             @(Destination+6) = shipRotationTable[shipRotOffset + 1]
         }

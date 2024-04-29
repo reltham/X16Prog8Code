@@ -32,7 +32,7 @@ zsmkit_lib:
 
     sub start()
     {
-        void cx16.set_screen_mode(0)
+        void cx16.screen_mode(0, false)
 
         txt.home()
         txt.print(iso:"\nGALAX16")
@@ -40,37 +40,41 @@ zsmkit_lib:
         InputHandler.Init()
         SpritePathTables.Init(game_banks_start);
 
-        ; load our sprites into VERA, the palette is loaded right into the palette registers at $fa00
-        void diskio.vload_raw(iso:"GALSPRITES.PAL", 1, $fa00)
-        void diskio.vload_raw(iso:"GALSPRITES.BIN", 0, Entity.sprite_data_addr)
-
-        ; enable sprites
-        cx16.VERA_DC_VIDEO = cx16.VERA_DC_VIDEO | %01000000
+        sprites.Init()
         
         ; setup sprites and their starting position, direction, and frame
-        const  ubyte  num_ships = 128
+        const  ubyte  num_ships = 64
         ubyte k
         Entity.Begin()
         for k in 0 to num_ships-1
         {
-            uword offsetX = 128 + (k % 16) * 16
-            uword offsetY = 16 + (k / 16) * 16 
-
-            Entity.Add(k, offsetX, offsetY, ((k>>4) % 9) << 1, Entity.state_onpath, 1) ;k%2)
-            void Entity.UpdateEntity(k)
+            Entity.Add(k, 128, 64, ((k>>3) % 10) << 1, Entity.state_onpath, k%2)
+        }
+        ubyte numUpdates = 0
+        ubyte l = 0
+        for k in 0 to num_ships-1
+        {
+            for l in 0 to numUpdates
+            {
+                Entity.UpdateEntity(k)
+            }
+            numUpdates+=1
         }
         Entity.End()
 
         ; setup zsmkit
         zsmkit.zsm_init_engine(zsmkit_bank)
         ;zsmkit.zsm_setfile(0, iso:"TFV_PCM.ZSM")
-        zsmkit.zsm_setfile(0, iso:"TFVRISESYNC.ZSM")
+        ;zsmkit.zsm_setfile(0, iso:"TFVRISESYNC.ZSM")
         ;zsmkit.zsm_setfile(0, iso:"SHOVEL_S.ZSM")
         cx16.rambank(zsmdata_bank_start)
-        void zsmkit.zsm_loadpcm(0, $a000)
+        void diskio.load_raw(iso:"TFVRISESYNC.ZSM", $A000)
+        ubyte zcmbank = cx16.getrambank() + 1
+        cx16.rambank(zsmdata_bank_start)
+        zsmkit.zsm_setmem(0, $A000)
+        ;void zsmkit.zsm_loadpcm(0, $a000)
 
         ; load 2 zcm's into memory
-        ubyte zcmbank = cx16.getrambank() + 1
         cx16.rambank(zcmbank)
         void diskio.load_raw(iso:"1.ZCM", $a000)
 
@@ -96,40 +100,44 @@ zsmkit_lib:
 
         byte doShips = 0
 
+        ubyte j = 0
         repeat
         {
+            cx16.VERA_DC_BORDER = 8
+            Entity.Begin()
+            for j in 0 to num_ships-1
+            {
+                Entity.UpdateSprite(j)
+            }
+            Entity.End()
+
             if (beat)
             {
                 doShips = 4
                 beat = false
             }
 
+            cx16.VERA_DC_BORDER = 2
             ; only update sprites when not paused
             if (not InputHandler.IsPaused())
             {
-                ubyte j = 0
                 Entity.Begin()
                 for j in 0 to num_ships-1
                 {
-                    if (Entity.UpdateEntity(j) == false)
-                    {
-                        void Entity.UpdateEntity(j)
-                    }
-                }
-                for j in 0 to num_ships-1
-                {
-                    Entity.UpdateSprite(j)
+                    cx16.VERA_DC_BORDER = 2 + j % 1
+                    Entity.UpdateEntity(j)
+                    cx16.VERA_DC_BORDER = 2
                 }
                 Entity.End()
                 if (doShips > 0) doShips--
             }
+            cx16.VERA_DC_BORDER = 7
 
             InputHandler.DoScan();
 
-            sys.waitvsync()
-
+            cx16.VERA_DC_BORDER = 5
             ; update zsmkit streaming buffers
-            zsmkit.zsm_fill_buffers()
+            ;zsmkit.zsm_fill_buffers()
 
             if (loopchanged)
             {
@@ -139,6 +147,9 @@ zsmkit_lib:
                 txt.print_uw(loop_number)
                 txt.nl()
             }
+            cx16.VERA_DC_BORDER = 0
+
+            sys.waitvsync()
         }
     }
 

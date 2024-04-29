@@ -1,6 +1,20 @@
 
 sprites
 {
+    ; sprites are loaded into VERA memory at $8000
+    ; sprites are 16x16x4bpp, so 128 bytes per sprite
+    const uword sprite_data_addr = $8000
+    const uword sprite_size = 128
+
+    sub Init()
+    {
+        ; load our sprites into VERA, the palette is loaded right into the palette registers at $fa00
+        void diskio.vload_raw(iso:"GALSPRITES.PAL", 1, $fa00)
+        void diskio.vload_raw(iso:"GALSPRITES.BIN", 0, sprite_data_addr)
+
+        ; enable sprites
+        cx16.VERA_DC_VIDEO = cx16.VERA_DC_VIDEO | %01000000
+    }
 
     ; widthHeight = (width << 2) | (height)
     ;  width and height are 0 to 3 for 0 = 8, 1 = 16, 2 = 32, 3 = 64.
@@ -13,7 +27,6 @@ sprites
     ;  collisionMask upper 4 bits
     sub setup(ubyte spriteNum, ubyte widthHeight, ubyte modeZDepthVHFlip, ubyte collisionMaskPaletteOffset)
     {
-
         uword offset = spriteNum as uword << 3
         ubyte temp1 = (widthHeight << 4) | (collisionMaskPaletteOffset & $0F)
         ubyte temp2 = (collisionMaskPaletteOffset & $F0) | (modeZDepthVHFlip & $0F)
@@ -22,7 +35,6 @@ sprites
         cx16.vpoke(1, $fc06 + offset, temp2)
         cx16.vpoke(1, $fc07 + offset, temp1)
     }
-
 /*
     ; widthHeightPaletteOffset = (width << 6) | (height << 4) | paletteOffset
     ;  width and height are 2 bits each: 0 to 3 for 0 = 8, 1 = 16, 2 = 32, 3 = 64.
@@ -40,83 +52,49 @@ sprites
         cx16.vpoke(1, $fc06 + offset, collisionMaskZDepthVHFlip)
         cx16.vpoke(1, $fc07 + offset, widthHeightPaletteOffset)
     }
-    
-    sub setState1(ubyte spriteNum, ubyte collisionMaskZDepthVHFlips)
-    {
-        uword offset = spriteNum as uword << 3
-        cx16.vpoke(1, $fc06 + offset, collisionMaskZDepthVHFlips)
-    }
-
-    sub setState2(ubyte spriteNum, ubyte widthHeightPaletteOffset)
-    {
-        uword offset = spriteNum as uword << 3
-        cx16.vpoke(1, $fc07 + offset, widthHeightPaletteOffset)
-    }
 */
-    ; set sprites H and V flips
-    sub flips(ubyte spriteNum, ubyte VHFlips)
+    asmsub updateEx(uword address @R0, uword sprite_address @R1, uword xPos @R2, uword yPos @R3, ubyte VHFlips @X) clobbers (A, X)
     {
-
-        uword offset = spriteNum as uword << 3
-        cx16.vpoke_mask(1, $fc06 + offset, %11111100, (VHFlips & $03))
-    }
-
-    asmsub positionEx(ubyte bank @A, uword address @R0, uword xPos @R1, uword yPos @R2) clobbers(A) {
         %asm {{
+            ; setup our address in vera with auto increment of 1
             stz  cx16.VERA_CTRL
-            and  #1
-            ora  #%10000
+            lda  #%00010001
             sta  cx16.VERA_ADDR_H
             lda  cx16.r0
             sta  cx16.VERA_ADDR_L
             lda  cx16.r0+1
             sta  cx16.VERA_ADDR_M
+
+            ; write out sprite image address, we always use 4bit color, so mode bit is 0
             lda  cx16.r1
+            sta  cx16.VERA_DATA0    
+            lda  cx16.r1+1 
             sta  cx16.VERA_DATA0
-            lda  cx16.r1+1
-            sta  cx16.VERA_DATA0
+
+            ; write out position
             lda  cx16.r2
             sta  cx16.VERA_DATA0
             lda  cx16.r2+1
             sta  cx16.VERA_DATA0
+            lda  cx16.r3
+            sta  cx16.VERA_DATA0
+            lda  cx16.r3+1
+            sta  cx16.VERA_DATA0
+
+            ; write vh flips, retaining rest of register's value
+            txa
+            and  #%00000011
+            ora  #%11111100
+            sta  cx16.VERA_DATA0
+
             rts
         }}
     }
 
-    ; xPos and yPox only use the lower 10 bits, the upper bits are ignored
-    sub position(ubyte spriteNum, uword xPos, uword yPos)
+    sub update(ubyte spriteNum, ubyte image_index, uword xPos, uword yPos, ubyte VHFlips)
     {
-
         uword offset = spriteNum as uword << 3
-        positionEx(1, $fc02 + offset, xPos, yPos)
-    }
-
-    asmsub set_addressEx(ubyte bank @A, uword address @R0, uword sprite_address @R1) clobbers (A) {
-        %asm {{
-            stz  cx16.VERA_CTRL
-            and  #1
-            sta  cx16.VERA_ADDR_H
-            lda  cx16.r0
-            sta  cx16.VERA_ADDR_L
-            lda  cx16.r0+1
-            sta  cx16.VERA_ADDR_M
-            lda  cx16.r1            ; write the lower part of the sprite address
-            sta  cx16.VERA_DATA0    ;
-            inc  cx16.VERA_ADDR_L
-            lda  #%10000000         ; retain the existing mode bit
-            and  cx16.VERA_DATA0    ;
-            ora  cx16.r1+1          ; or with upper part of address 
-            sta  cx16.VERA_DATA0    ; and write the upper part of the sprite address combined with existing mode bit
-            rts
-        }}
-    }
-
-    ; sprites have to be 32 byte aligned, so the lower 5 bits of spriteAddress are ignored
-    sub set_address(ubyte spriteNum, ubyte spriteBank, uword spriteAddress)
-    {
-
-        uword offset = spriteNum as uword << 3
-        uword addr = (spriteAddress >> 5) | ((spriteBank as uword & 1) << 11)
-        set_addressEx(1, $fc00 + offset, addr)
+        uword imageAddr = (sprite_data_addr + (image_index as uword * sprite_size)) >> 5
+        updateEx($fc00 + offset, imageAddr, xPos, yPos, VHFlips)
     }
 }
