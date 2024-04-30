@@ -53,7 +53,7 @@ sprites
         cx16.vpoke(1, $fc07 + offset, widthHeightPaletteOffset)
     }
 */
-    asmsub updateEx(uword address @R0, uword sprite_address @R1, uword xPos @R2, uword yPos @R3, ubyte VHFlips @X) clobbers (A, X)
+    asmsub updateEx(ubyte VHFlips @X) clobbers (A, X)
     {
         %asm {{
             ; setup our address in vera with auto increment of 1
@@ -91,10 +91,10 @@ sprites
         }}
     }
 
-    sub update(ubyte spriteNum, ubyte image_index, uword xPos, uword yPos, ubyte VHFlips)
+    sub update(ubyte spriteNum, ubyte image_index, ubyte VHFlips)
     {
-        uword offset = spriteNum as uword << 3
-        uword imageAddr = (sprite_data_addr + (image_index as uword * sprite_size)) >> 5
-        updateEx($fc00 + offset, imageAddr, xPos, yPos, VHFlips)
+        cx16.r0 = $fc00 + (spriteNum as uword << 3)
+        cx16.r1 = (sprite_data_addr + (image_index as uword * sprite_size)) >> 5
+        updateEx(VHFlips)
     }
 }

@@ -52,7 +52,7 @@ Entity
 
     sub Add(ubyte entity_index, uword xPos, uword yPos, ubyte ship_index, ubyte state, ubyte state_data)
     {
-        uword curr_entity = entities + (entity_index as uword << 4)
+        uword @zp curr_entity = entities + (entity_index as uword << 4)
         pokew(curr_entity + entity_x, xPos as uword)
         pokew(curr_entity + entity_y, yPos as uword)
         curr_entity[entity_sprite_index] = 0
@@ -74,46 +74,48 @@ Entity
 
     sub UpdatePosition(ubyte entity_index, word xPos, word yPos)
     {
-        uword curr_entity = entities + (entity_index as uword << 4)
+        uword @zp curr_entity = entities + (entity_index as uword << 4)
         
         word xPosA = peekw(curr_entity + entity_x) + xPos
         word yPosA = peekw(curr_entity + entity_y) + yPos
 
         ; wrap on screen edges (but allow sprites to move off edges before wrapping)
-        if (xPosA > 639) xPosA -= 656
-        else if (xPosA < -16) xPosA += 656
-        if (yPosA > 479) yPosA -= 496
-        else if (yPosA < -16) yPosA += 496
+        if (msb(xPosA) != 0)
+        {
+            if (xPosA > 639) xPosA -= 656
+            else if (xPosA < -16) xPosA += 656
+        }
+        if (msb(yPosA) != 0)
+        {
+            if (yPosA > 479) yPosA -= 496
+            else if (yPosA < -16) yPosA += 496
+        }
 
         pokew(curr_entity + entity_x, xPosA as uword)
         pokew(curr_entity + entity_y, yPosA as uword)
     }
 
-    sub UpdateEntity(ubyte entity_index)
+    sub UpdateEntity(ubyte entity_index) -> bool
     {
-        uword curr_entity = entities + (entity_index as uword << 4)
+        uword @zp curr_entity = entities + (entity_index as uword << 4)
 
         if (curr_entity[entity_state] == state_onpath)
         {
             byte[7] pathEntry
             cx16.VERA_DC_BORDER = 4
             SpritePathTables.GetPathEntry(curr_entity[entity_state_path], curr_entity[entity_state_path_offset], curr_entity[entity_ship_index], &pathEntry)
-            cx16.VERA_DC_BORDER = 2 + entity_index % 2
-            
+            cx16.VERA_DC_BORDER = 2
+
             if (pathEntry[0] == 0)
             {
                 if (pathEntry[1] == 0)
                 {
                     curr_entity[entity_state_path_offset] = 0
                 }
-                else if (pathEntry[1] == 1)
+                else
                 {
                     ; return from gosub
-                    if (curr_entity[entity_state_path_return_index] == -1)
-                    {
-                        return
-                    }
-                    else
+                    if (curr_entity[entity_state_path_return_index] != -1)
                     {
                         /*
                         ubyte currPath = curr_entity[entity_state_path]
@@ -138,16 +140,10 @@ Entity
                         curr_entity[entity_state_path_offset] = curr_entity[stackOffset + 1]
                         curr_entity[stackOffset + 1] = -1
                         curr_entity[entity_state_path_return_index]--
-                        curr_entity[entity_state_path_repeat] = 0
+                        ;curr_entity[entity_state_path_repeat] = 0
                     }
                 }
-                cx16.VERA_DC_BORDER = 4
-                SpritePathTables.GetPathEntry(curr_entity[entity_state_path], curr_entity[entity_state_path_offset], curr_entity[entity_ship_index], &pathEntry)
-                cx16.VERA_DC_BORDER = 2 + entity_index % 2
-                if (pathEntry[0] == 0 and pathEntry[1] == 0)
-                {
-                    return
-                }
+                return true
             }
             else if (pathEntry[0] == 2)
             {
@@ -190,9 +186,7 @@ Entity
                 curr_entity[entity_state_path] = newPath
                 curr_entity[entity_state_path_offset] = 0
 
-                cx16.VERA_DC_BORDER = 4
-                SpritePathTables.GetPathEntry(curr_entity[entity_state_path], curr_entity[entity_state_path_offset], curr_entity[entity_ship_index], &pathEntry)
-                cx16.VERA_DC_BORDER = 2 + entity_index % 2
+                return true
             }
 
             UpdatePosition(entity_index, pathEntry[2] as word, pathEntry[3] as word)
@@ -209,14 +203,33 @@ Entity
                 curr_entity[entity_state_path_offset]++
             }
         }
+        return false
     }
     
     sub UpdateSprite(ubyte entity_index)
     {
-        uword curr_entity = entities + (entity_index as uword << 4)
+        uword @zp curr_entity = entities + (entity_index as uword << 4)
 
         uword xPos = peekw(curr_entity + entity_x)
         uword yPos = peekw(curr_entity + entity_y)
-        sprites.update(entity_index, curr_entity[entity_sprite_index], xPos, yPos, curr_entity[entity_sprite_setup])
+        ;sprites.update(entity_index, curr_entity[entity_sprite_index], xPos, yPos, curr_entity[entity_sprite_setup])
+    }
+    sub UpdateSprites(ubyte num_sprites)
+    {
+        uword @zp curr_entity = entities
+        
+        ubyte spriteNum = 0
+        cx16.r0 = $fc00
+        for spriteNum in 0 to num_sprites
+        {
+            cx16.r2 = peekw(curr_entity + entity_x)
+            cx16.r3 = peekw(curr_entity + entity_y)
+            ;sprites.update(spriteNum, curr_entity[entity_sprite_index], curr_entity[entity_sprite_setup])
+            ;cx16.r1 = (sprites.sprite_data_addr + (curr_entity[entity_sprite_index] as uword * sprites.sprite_size)) >> 5
+            cx16.r1 = ($400 + (curr_entity[entity_sprite_index] as uword * 4)) 
+            sprites.updateEx(curr_entity[entity_sprite_setup])
+            curr_entity += 16
+            cx16.r0 += 8
+        }
     }
 }

@@ -9,7 +9,7 @@
 %import SpritePathTables
 %import Entity
 %import InputHandler
-%zeropage basicsafe
+%zeropage kernalsafe
 
 ; "issues":
 ; - prog8 (or rather, 64tass) cannot "link" other assembly object files so we have to incbin a binary blob.
@@ -32,7 +32,7 @@ zsmkit_lib:
 
     sub start()
     {
-        void cx16.screen_mode(0, false)
+        void cx16.screen_mode(8, false)
 
         txt.home()
         txt.print(iso:"\nGALAX16")
@@ -43,12 +43,12 @@ zsmkit_lib:
         sprites.Init()
         
         ; setup sprites and their starting position, direction, and frame
-        const  ubyte  num_ships = 64
+        const  ubyte  num_ships = 80
         ubyte k
         Entity.Begin()
         for k in 0 to num_ships-1
         {
-            Entity.Add(k, 128, 64, ((k>>3) % 10) << 1, Entity.state_onpath, k%2)
+            Entity.Add(k, 128, 0, ((k>>3) % 10) << 1, Entity.state_onpath, 5)
         }
         ubyte numUpdates = 0
         ubyte l = 0
@@ -56,9 +56,12 @@ zsmkit_lib:
         {
             for l in 0 to numUpdates
             {
-                Entity.UpdateEntity(k)
+                if (Entity.UpdateEntity(k))
+                {
+                    void Entity.UpdateEntity(k)
+                }
             }
-            numUpdates+=1
+            numUpdates+=2
         }
         Entity.End()
 
@@ -105,10 +108,7 @@ zsmkit_lib:
         {
             cx16.VERA_DC_BORDER = 8
             Entity.Begin()
-            for j in 0 to num_ships-1
-            {
-                Entity.UpdateSprite(j)
-            }
+            Entity.UpdateSprites(num_ships-1)
             Entity.End()
 
             if (beat)
@@ -125,7 +125,10 @@ zsmkit_lib:
                 for j in 0 to num_ships-1
                 {
                     cx16.VERA_DC_BORDER = 2 + j % 1
-                    Entity.UpdateEntity(j)
+                    if (Entity.UpdateEntity(j))
+                    {
+                        void Entity.UpdateEntity(j)
+                    }
                     cx16.VERA_DC_BORDER = 2
                 }
                 Entity.End()

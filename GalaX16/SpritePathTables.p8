@@ -76,7 +76,7 @@ SpritePathTables
     {
         if (pathIndex < num_paths)
         {
-            uword path = peekw(paths + (pathIndex * 2))
+            uword @zp path = peekw(paths + (pathIndex * 2))
             ubyte pathOffset = pathEntry * 5
             @(Destination) = path[pathOffset] as ubyte
             pathOffset++
@@ -87,9 +87,12 @@ SpritePathTables
             @(Destination+3) = path[pathOffset] as ubyte
             pathOffset++
             @(Destination+4) = path[pathOffset] as ubyte
-            ubyte shipRotOffset = path[pathOffset] as ubyte << 1
-            @(Destination+5) = shipRotationTable[shipRotOffset] + shipSpriteOffset[shipIndex]
-            @(Destination+6) = shipRotationTable[shipRotOffset + 1]
+            if (@(Destination) == 1)
+            {
+                ubyte shipRotOffset = path[pathOffset] as ubyte << 1
+                @(Destination+5) = shipRotationTable[shipRotOffset] + shipSpriteOffset[shipIndex]
+                @(Destination+6) = shipRotationTable[shipRotOffset + 1]
+            }
         }
     }
 }
