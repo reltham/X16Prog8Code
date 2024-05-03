@@ -13,6 +13,81 @@
 
 Entity
 {
+    const ubyte sequence_pace = 0
+    const ubyte sequence_entity = 1
+    const ubyte sequence_position = 2
+    const ubyte sequence_path = 3
+    const ubyte sequence_formation = 4
+    const ubyte sequence_end = 5
+    
+    const ubyte sequence_command = 0
+    const ubyte sequence_data0 = 1
+    const ubyte sequence_data1 = 2
+    
+    word[] positions = [
+        -16, ;0
+          0, ;1
+         16, ;2
+         64, ;3
+        128, ;4
+        240, ;5
+        320, ;6
+        352, ;7
+        416, ;8
+        464, ;9
+        480, ;10
+        512, ;11
+        576, ;12
+        624, ;12
+        640  ;13
+    ]
+    
+    ubyte[] sequence0 = [
+        0, 1, 0,
+        1, 0, 0,
+        2, 6, 0,
+        3, 0, 0
+        4, 0, 1
+        5, 1, 8
+    ]
+    ubyte[] sequence1 = [
+        0, 1, 0,
+        1, 1, 0,
+        2, 6, 0,
+        3, 5, 0
+        4, 8, 1
+        5, 1, 8
+    ]
+    
+    uword[] sequences = [
+        &sequence0, &sequence2
+    ] 
+    
+    ubyte[] level_set0 = [
+        0, 30,
+        1, 0,
+        255, 255
+    ]
+    
+    ubyte[] level_set1 = [
+        1, 30,
+        0, 0,
+        255, 255
+    ]
+    
+    uworc[] levels = [
+         &level_set0, &level_set1
+    ]
+    
+    ubyte curr_level = 0
+    ubyte level_set_curr_step = 0
+    ubyte level_set_delay = 0
+    
+    ubyte sequence_curr_pace = 0
+    ubyte sequence_curr_step = 0
+    ubyte sequence_repeat = 0
+    
+    
     const ubyte entity_x = 0
     const ubyte entity_y = 2
     const ubyte entity_sprite_index = 4
@@ -23,9 +98,6 @@ Entity
 
     ; when state is static state data is not used
 
-    ; when state is formation state data is as follows
-    const ubyte entity_state_formation_slot = 8
-
     ; when state is onpath state data is as follows
     const ubyte entity_state_path = 8
     const ubyte entity_state_path_offset = 9
@@ -33,12 +105,16 @@ Entity
     const ubyte entity_state_path_return_index = 11
     const ubyte entity_state_path_return = 12 ; 4 bytes to hold path indices/offsets for gosub/return stuff (can only nest 2 deep)
 
+    ; when state is formation state data is as follows
+    const ubyte entity_state_formation_slot = 8
+
+    const ubyte state_player = 0
+    const ubyte state_static = 1
+    const ubyte state_onpath = 2
+    const ubyte state_formation = 3
+
     const ubyte entities_bank = 2
     const uword entities = $a000
-
-    const ubyte state_static = 0
-    const ubyte state_formation = 1
-    const ubyte state_onpath = 2
 
     sub Begin()
     {
@@ -156,7 +232,7 @@ Entity
                 {
                     curr_entity[entity_state_path_return_index]++
                 }
-                ubyte newPath = pathEntry[2] as ubyte
+                ubyte newPath = pathEntry[1] as ubyte
                 /*
                 if (pathEntry[1] == 1)
                 {
