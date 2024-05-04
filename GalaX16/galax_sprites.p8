@@ -90,11 +90,4 @@ sprites
             rts
         }}
     }
-
-    sub update(ubyte spriteNum, ubyte image_index, ubyte VHFlips)
-    {
-        cx16.r0 = $fc00 + (spriteNum as uword << 3)
-        cx16.r1 = (sprite_data_addr + (image_index as uword * sprite_size)) >> 5
-        updateEx(VHFlips)
-    }
 }

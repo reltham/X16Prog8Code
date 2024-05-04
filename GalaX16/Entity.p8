@@ -1,93 +1,5 @@
-; Entity stuff
-
-; entity data
-; 0 position x (word)
-; 1 
-; 2 position y (word)
-; 3
-; 4 sprite index
-; 5 collision mask | z depths | flips
-; 6 state = static, formation, onpath
-; 7 state data: path index, formation slot
-
-
 Entity
 {
-    const ubyte sequence_pace = 0
-    const ubyte sequence_entity = 1
-    const ubyte sequence_position = 2
-    const ubyte sequence_path = 3
-    const ubyte sequence_formation = 4
-    const ubyte sequence_end = 5
-    
-    const ubyte sequence_command = 0
-    const ubyte sequence_data0 = 1
-    const ubyte sequence_data1 = 2
-    
-    word[] positions = [
-        -16, ;0
-          0, ;1
-         16, ;2
-         64, ;3
-        128, ;4
-        240, ;5
-        320, ;6
-        352, ;7
-        416, ;8
-        464, ;9
-        480, ;10
-        512, ;11
-        576, ;12
-        624, ;12
-        640  ;13
-    ]
-    
-    ubyte[] sequence0 = [
-        0, 1, 0,
-        1, 0, 0,
-        2, 6, 0,
-        3, 0, 0
-        4, 0, 1
-        5, 1, 8
-    ]
-    ubyte[] sequence1 = [
-        0, 1, 0,
-        1, 1, 0,
-        2, 6, 0,
-        3, 5, 0
-        4, 8, 1
-        5, 1, 8
-    ]
-    
-    uword[] sequences = [
-        &sequence0, &sequence2
-    ] 
-    
-    ubyte[] level_set0 = [
-        0, 30,
-        1, 0,
-        255, 255
-    ]
-    
-    ubyte[] level_set1 = [
-        1, 30,
-        0, 0,
-        255, 255
-    ]
-    
-    uworc[] levels = [
-         &level_set0, &level_set1
-    ]
-    
-    ubyte curr_level = 0
-    ubyte level_set_curr_step = 0
-    ubyte level_set_delay = 0
-    
-    ubyte sequence_curr_pace = 0
-    ubyte sequence_curr_step = 0
-    ubyte sequence_repeat = 0
-    
-    
     const ubyte entity_x = 0
     const ubyte entity_y = 2
     const ubyte entity_sprite_index = 4
@@ -282,14 +194,6 @@ Entity
         return false
     }
     
-    sub UpdateSprite(ubyte entity_index)
-    {
-        uword @zp curr_entity = entities + (entity_index as uword << 4)
-
-        uword xPos = peekw(curr_entity + entity_x)
-        uword yPos = peekw(curr_entity + entity_y)
-        ;sprites.update(entity_index, curr_entity[entity_sprite_index], xPos, yPos, curr_entity[entity_sprite_setup])
-    }
     sub UpdateSprites(ubyte num_sprites)
     {
         uword @zp curr_entity = entities
@@ -298,11 +202,9 @@ Entity
         cx16.r0 = $fc00
         for spriteNum in 0 to num_sprites
         {
+            cx16.r1 = ($400 + (curr_entity[entity_sprite_index] as uword * 4)) ; calc sprite vera address, but already shifted down 5 (since we only need upper 11 bits) 
             cx16.r2 = peekw(curr_entity + entity_x)
             cx16.r3 = peekw(curr_entity + entity_y)
-            ;sprites.update(spriteNum, curr_entity[entity_sprite_index], curr_entity[entity_sprite_setup])
-            ;cx16.r1 = (sprites.sprite_data_addr + (curr_entity[entity_sprite_index] as uword * sprites.sprite_size)) >> 5
-            cx16.r1 = ($400 + (curr_entity[entity_sprite_index] as uword * 4)) 
             sprites.updateEx(curr_entity[entity_sprite_setup])
             curr_entity += 16
             cx16.r0 += 8
