@@ -42,22 +42,25 @@ zsmkit_lib:
         txt.home()
         txt.print(iso:"\nGALAX16")
 
-        const ubyte num_entities = 64
-        SetupDemoEnitities(num_entities)
-
+        const ubyte num_entities = 80
+        const ubyte num_entities_static = 32
+        SetupDemoEnitities(num_entities, num_entities_static)
+        Entity.Begin()
+        Entity.UpdateSprites(0, num_entities_static)
+        Entity.End()
         repeat
         {
             cx16.VERA_DC_BORDER = 8
             Entity.Begin()
-            Entity.UpdateSprites(num_entities-1)
+            Entity.UpdateSprites(num_entities_static, num_entities)
             Entity.End()
 
             cx16.VERA_DC_BORDER = 2
-            if (not InputHandler.IsPaused() and temp == 0)
+            if (not InputHandler.IsPaused())
             {
                 Entity.Begin()
-                ubyte j = 0
-                for j in 0 to num_entities-1
+                ubyte j
+                for j in num_entities_static to num_entities_static + num_entities-1
                 {
                     cx16.VERA_DC_BORDER = 2 + j % 1
                     if (Entity.UpdateEntity(j))
@@ -90,17 +93,22 @@ zsmkit_lib:
         }
     }
 
-    sub SetupDemoEnitities(ubyte num_ships)
+    sub SetupDemoEnitities(ubyte numShips, ubyte numStatic)
     {
         ubyte k
         Entity.Begin()
-        for k in 0 to num_ships-1
+        for k in 0 to numStatic-1
         {
-            Entity.Add(k, 128, 0, ((k>>3) % 10) << 1, Entity.state_onpath, 0)
-        }
+            Entity.Add(k, (k as uword * 16), 480 - 96, (k % 10) << 1, Entity.state_static, 0)
+            if (Entity.UpdateEntity(k))
+            {
+                void Entity.UpdateEntity(k)
+            }
+        } 
         ubyte numUpdates = 0
-        for k in 0 to num_ships-1
+        for k in numStatic to numStatic + numShips-1
         {
+            Entity.Add(k, 128, 0, ((k>>2) % 10) << 1, Entity.state_onpath, (k % 2) * 5)
             repeat numUpdates
             {
                 if (Entity.UpdateEntity(k))
@@ -108,7 +116,7 @@ zsmkit_lib:
                     void Entity.UpdateEntity(k)
                 }
             }
-            numUpdates+=2
+            numUpdates+=1
         }
         Entity.End()
     }
@@ -125,16 +133,16 @@ zsmkit_lib:
 
         ; load 2 zcm's into memory
         cx16.rambank(zcmbank)
-        void diskio.load_raw(iso:"1.ZCM", $a000)
+        void diskio.load_raw(iso:"1.ZCM", $A000)
 
         ubyte zcmbank2 = cx16.getrambank() + 1
         cx16.rambank(zcmbank2)
-        void diskio.load_raw(iso:"2.ZCM", $a000)
+        void diskio.load_raw(iso:"2.ZCM", $A000)
 
         cx16.rambank(zcmbank2)
-        zsmkit.zcm_setmem(0, $a000)
+        zsmkit.zcm_setmem(0, $A000)
         cx16.rambank(zcmbank)
-        zsmkit.zcm_setmem(1, $a000)
+        zsmkit.zcm_setmem(1, $A000)
         
         ; start the music playing
         zsmkit.zsm_setatten(0, 40)

@@ -6,7 +6,7 @@ Entity
     const ubyte entity_sprite_setup = 5
     const ubyte entity_ship_index = 6
     const ubyte entity_state = 7
-    const ubyte entity_state_data = 8 ; state data is up to 8 bytes
+    const ubyte entity_state_data = 8 ; state data size varies by type
 
     ; when state is static state data is not used
 
@@ -14,16 +14,18 @@ Entity
     const ubyte entity_state_path = 8
     const ubyte entity_state_path_offset = 9
     const ubyte entity_state_path_repeat = 10
+    
     const ubyte entity_state_path_return_index = 11
     const ubyte entity_state_path_return = 12 ; 4 bytes to hold path indices/offsets for gosub/return stuff (can only nest 2 deep)
 
     ; when state is formation state data is as follows
     const ubyte entity_state_formation_slot = 8
 
-    const ubyte state_player = 0
-    const ubyte state_static = 1
-    const ubyte state_onpath = 2
-    const ubyte state_formation = 3
+    const ubyte state_none = 0
+    const ubyte state_player = 1
+    const ubyte state_static = 2
+    const ubyte state_onpath = 3
+    const ubyte state_formation = 4
 
     const ubyte entities_bank = 2
     const uword entities = $a000
@@ -38,16 +40,16 @@ Entity
         cx16.rambank(0)
     }
 
-    sub Add(ubyte entity_index, uword xPos, uword yPos, ubyte ship_index, ubyte state, ubyte state_data)
+    sub Add(ubyte entityIndex, uword xPos, uword yPos, ubyte shipIndex, ubyte state, ubyte stateData)
     {
-        uword @zp curr_entity = entities + (entity_index as uword << 4)
+        uword @zp curr_entity = entities + (entityIndex as uword << 4)
         pokew(curr_entity + entity_x, xPos as uword)
         pokew(curr_entity + entity_y, yPos as uword)
-        curr_entity[entity_sprite_index] = 0
+        curr_entity[entity_sprite_index] = SpritePathTables.GetSpriteOffset(shipIndex)
         curr_entity[entity_sprite_setup] = 0
-        curr_entity[entity_ship_index] = ship_index
+        curr_entity[entity_ship_index] = shipIndex
         curr_entity[entity_state] = state
-        curr_entity[entity_state_data] = state_data
+        curr_entity[entity_state_data] = stateData
         curr_entity[entity_state_data + 1] = 0
         curr_entity[entity_state_data + 2] = 0
         curr_entity[entity_state_data + 3] = -1
@@ -55,14 +57,14 @@ Entity
         curr_entity[entity_state_data + 5] = -1
         curr_entity[entity_state_data + 6] = -1
         curr_entity[entity_state_data + 7] = -1
-        
+
         ; sprites are 16x16, 8bpp, and between layer 0 and layer 1
-        sprites.setup(entity_index, %00000101, %00001000, 0)
+        sprites.setup(entityIndex, %00000101, %00001000, 0)
     }
 
-    sub UpdatePosition(ubyte entity_index, word xPos, word yPos)
+    sub UpdatePosition(ubyte entityIndex, word xPos, word yPos)
     {
-        uword @zp curr_entity = entities + (entity_index as uword << 4)
+        uword @zp curr_entity = entities + (entityIndex as uword << 4)
         
         word xPosA = peekw(curr_entity + entity_x) + xPos
         word yPosA = peekw(curr_entity + entity_y) + yPos
@@ -83,10 +85,14 @@ Entity
         pokew(curr_entity + entity_y, yPosA as uword)
     }
 
-    sub UpdateEntity(ubyte entity_index) -> bool
+    sub UpdateEntity(ubyte entityIndex) -> bool
     {
-        uword @zp curr_entity = entities + (entity_index as uword << 4)
+        uword @zp curr_entity = entities + (entityIndex as uword << 4)
 
+        if (curr_entity[entity_state] == state_static)
+        {
+            return true;
+        }
         if (curr_entity[entity_state] == state_onpath)
         {
             byte[7] pathEntry
@@ -177,7 +183,7 @@ Entity
                 return true
             }
 
-            UpdatePosition(entity_index, pathEntry[2] as word, pathEntry[3] as word)
+            UpdatePosition(entityIndex, pathEntry[2] as word, pathEntry[3] as word)
             curr_entity[entity_sprite_index] = pathEntry[5] as ubyte
             curr_entity[entity_sprite_setup] = pathEntry[6] as ubyte
             
@@ -194,13 +200,13 @@ Entity
         return false
     }
     
-    sub UpdateSprites(ubyte num_sprites)
+    sub UpdateSprites(ubyte startIndex, ubyte numSprites)
     {
-        uword @zp curr_entity = entities
+        uword @zp curr_entity = entities + (startIndex as uword * 16)
         
-        ubyte spriteNum = 0
-        cx16.r0 = $fc00
-        for spriteNum in 0 to num_sprites
+        ubyte sprite_num
+        cx16.r0 = $fc00 + (startIndex as uword * 8)
+        for sprite_num in startIndex to startIndex + numSprites - 1
         {
             cx16.r1 = ($400 + (curr_entity[entity_sprite_index] as uword * 4)) ; calc sprite vera address, but already shifted down 5 (since we only need upper 11 bits) 
             cx16.r2 = peekw(curr_entity + entity_x)
