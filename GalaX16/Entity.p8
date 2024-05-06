@@ -1,12 +1,13 @@
 Entity
 {
+    ; entities are 32 bytes each
     const ubyte entity_x = 0
     const ubyte entity_y = 2
     const ubyte entity_sprite_index = 4
     const ubyte entity_sprite_setup = 5
     const ubyte entity_ship_index = 6
     const ubyte entity_state = 7
-    const ubyte entity_state_data = 8 ; state data size varies by type
+    const ubyte entity_state_data = 8 ; state data size varies by type, max of 12 bytes
 
     ; when state is static state data is not used
 
@@ -14,18 +15,26 @@ Entity
     const ubyte entity_state_path = 8
     const ubyte entity_state_path_offset = 9
     const ubyte entity_state_path_repeat = 10
-    
     const ubyte entity_state_path_return_index = 11
-    const ubyte entity_state_path_return = 12 ; 4 bytes to hold path indices/offsets for gosub/return stuff (can only nest 2 deep)
+    const ubyte entity_state_path_return = 12 ; 8 bytes to hold path indices/offsets for gosub/return stuff (can only nest 4 deep)
 
     ; when state is formation state data is as follows
-    const ubyte entity_state_formation_slot = 8
+    const ubyte entity_state_formation_state = 8
+
+    ; next state defaults to none (0) meaning the entity terminates at end of path
+    const ubyte entity_state_next_state = 20        ; this state will be set when the path the entity is on ends
+    const ubyte entity_state_next_state_data = 21   ; state data size varies by type, max of 11 bytes
+
 
     const ubyte state_none = 0
     const ubyte state_player = 1
     const ubyte state_static = 2
     const ubyte state_onpath = 3
     const ubyte state_formation = 4
+
+    const ubyte formation_state_init = 1
+    const ubyte formation_state_fly_to = 2
+    const ubyte formation_state_in_slot = 3
 
     const ubyte entities_bank = 2
     const uword entities = $a000
@@ -42,7 +51,7 @@ Entity
 
     sub Add(ubyte entityIndex, uword xPos, uword yPos, ubyte shipIndex, ubyte state, ubyte stateData)
     {
-        uword @zp curr_entity = entities + (entityIndex as uword << 4)
+        uword @zp curr_entity = entities + (entityIndex as uword << 5)
         pokew(curr_entity + entity_x, xPos as uword)
         pokew(curr_entity + entity_y, yPos as uword)
         curr_entity[entity_sprite_index] = SpritePathTables.GetSpriteOffset(shipIndex)
@@ -52,19 +61,34 @@ Entity
         curr_entity[entity_state_data] = stateData
         curr_entity[entity_state_data + 1] = 0
         curr_entity[entity_state_data + 2] = 0
-        curr_entity[entity_state_data + 3] = -1
-        curr_entity[entity_state_data + 4] = -1
-        curr_entity[entity_state_data + 5] = -1
-        curr_entity[entity_state_data + 6] = -1
-        curr_entity[entity_state_data + 7] = -1
+        ubyte i
+        for i in 3 to 19
+        {
+            curr_entity[entity_state_data + i] = -1
+        }
+        curr_entity[entity_state_next_state] = 0
+        curr_entity[entity_state_next_state_data] = 0
+        for i in 1 to 10
+        {
+            curr_entity[entity_state_next_state_data + i] = -1
+        }
 
         ; sprites are 16x16, 8bpp, and between layer 0 and layer 1
         sprites.setup(entityIndex, %00000101, %00001000, 0)
     }
 
+    sub SetNextState(ubyte entityIndex, ubyte nextState, ubyte nextStateData)
+    {
+        uword @zp curr_entity = entities + (entityIndex as uword << 5)
+        curr_entity[entity_state_next_state] = nextState
+        curr_entity[entity_state_next_state_data] = nextStateData
+        curr_entity[entity_state_next_state_data + 1] = 0
+        curr_entity[entity_state_next_state_data + 2] = 0
+    }
+
     sub UpdatePosition(ubyte entityIndex, word xPos, word yPos)
     {
-        uword @zp curr_entity = entities + (entityIndex as uword << 4)
+        uword @zp curr_entity = entities + (entityIndex as uword << 5)
         
         word xPosA = peekw(curr_entity + entity_x) + xPos
         word yPosA = peekw(curr_entity + entity_y) + yPos
@@ -72,25 +96,71 @@ Entity
         ; wrap on screen edges (but allow sprites to move off edges before wrapping)
         if (msb(xPosA) != 0)
         {
-            if (xPosA > 639) xPosA -= 656
-            else if (xPosA < -16) xPosA += 656
+            if (xPosA > 511) xPosA -= 528
+            else if (xPosA < -16) xPosA += 528
         }
         if (msb(yPosA) != 0)
         {
-            if (yPosA > 479) yPosA -= 496
-            else if (yPosA < -16) yPosA += 496
+            if (yPosA > 399) yPosA -= 416
+            else if (yPosA < -16) yPosA += 416
         }
 
         pokew(curr_entity + entity_x, xPosA as uword)
         pokew(curr_entity + entity_y, yPosA as uword)
     }
+    
+    sub SetPosition(ubyte entityIndex, uword xPos, uword yPos, bool bIntoNextStateData)
+    {
+        uword @zp curr_entity = entities + (entityIndex as uword << 5)
+        if (bIntoNextStateData == true)
+        {
+            pokew(curr_entity + entity_state_next_state_data + 2, xPos)
+            pokew(curr_entity + entity_state_next_state_data + 4, yPos)
+        }
+        else
+        {
+            pokew(curr_entity + entity_x, xPos)
+            pokew(curr_entity + entity_y, yPos)
+        }
+    }
 
     sub UpdateEntity(ubyte entityIndex) -> bool
     {
-        uword @zp curr_entity = entities + (entityIndex as uword << 4)
+        uword @zp curr_entity = entities + (entityIndex as uword << 5)
 
         if (curr_entity[entity_state] == state_static)
         {
+            return true;
+        }
+        if (curr_entity[entity_state] == state_formation)
+        {
+            if (curr_entity[entity_state_data + 1] == formation_state_init)
+            {
+                word curr_x = peekw(curr_entity + entity_x) as word
+                word curr_y = peekw(curr_entity + entity_y) as word
+                word target_x = peekw(curr_entity + entity_state_data + 2) as word 
+                word target_y = peekw(curr_entity + entity_state_data + 4) as word
+                byte diff_x = (target_x - curr_x) as byte
+                byte diff_y = (target_y - curr_y) as byte
+                ubyte direction = math.direction_sc(0, 0, diff_x, diff_y)
+
+                ; set sprite image index and flips
+                uword sprite_info = SpritePathTables.GetSpriteRotationInfo(curr_entity[entity_ship_index], direction)
+                curr_entity[entity_sprite_index] = msb(sprite_info)
+                curr_entity[entity_sprite_setup] = lsb(sprite_info)
+
+                ; calc x,y steps and number of steps to reach target and save into state_data
+
+                ; do first step
+                
+                curr_entity[entity_state_data + 1] = formation_state_fly_to
+            }
+            else if (curr_entity[entity_state_data + 1] == formation_state_fly_to)
+            {
+            }
+            else if (curr_entity[entity_state_data + 1] == formation_state_in_slot)
+            {
+            }
             return true;
         }
         if (curr_entity[entity_state] == state_onpath)
@@ -104,6 +174,17 @@ Entity
             {
                 if (pathEntry[1] == 0)
                 {
+                    curr_entity[entity_state] = curr_entity[entity_state_next_state]
+                    curr_entity[entity_state_data] = curr_entity[entity_state_next_state_data]
+                    if (curr_entity[entity_state_next_state] != state_none)
+                    {
+                        ubyte i
+                        for i in 1 to 10
+                        {
+                            curr_entity[entity_state_data + i] = curr_entity[entity_state_next_state_data + i]
+                        }
+                        curr_entity[entity_state_data + 11] = -1
+                    }
                     curr_entity[entity_state_path_offset] = 0
                 }
                 else
@@ -212,7 +293,7 @@ Entity
             cx16.r2 = peekw(curr_entity + entity_x)
             cx16.r3 = peekw(curr_entity + entity_y)
             sprites.updateEx(curr_entity[entity_sprite_setup])
-            curr_entity += 16
+            curr_entity += 32
             cx16.r0 += 8
         }
     }

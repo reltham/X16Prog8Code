@@ -57,6 +57,11 @@ SpritePathTables
     {
         return ship_sprite_offset[shipIndex]
     }
+    
+    sub GetSpriteRotationInfo(ubyte shipIndex, ubyte direction) -> uword
+    {
+        return mkword(ship_sprite_offset[shipIndex] + ship_rotation_table[direction * 2], ship_rotation_table[(direction * 2) + 1]) 
+    }
 
     ; fill up a "struct" with path data and ship sprite data
     ; the path data is the x and y offsets for this step in the path, and the rotation as a number from 0 to 23

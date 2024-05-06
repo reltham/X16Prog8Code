@@ -109,6 +109,7 @@ zsmkit_lib:
         for k in numStatic to numStatic + numShips-1
         {
             Entity.Add(k, 128, 0, ((k>>2) % 10) << 1, Entity.state_onpath, (k % 2) * 5)
+            Entity.SetNextState(k, Entity.state_onpath, (k % 2) * 5)
             repeat numUpdates
             {
                 if (Entity.UpdateEntity(k))
