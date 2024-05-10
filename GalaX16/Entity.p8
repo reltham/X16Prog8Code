@@ -75,6 +75,7 @@ Entity
 
         ; sprites are 16x16, 8bpp, and between layer 0 and layer 1
         sprites.setup(entityIndex, %00000101, %00001000, 0)
+        sprites.position(entityIndex, 0, (-16) as uword)
     }
 
     sub SetNextState(ubyte entityIndex, ubyte nextState, ubyte nextStateData)
@@ -84,6 +85,21 @@ Entity
         curr_entity[entity_state_next_state_data] = nextStateData
         curr_entity[entity_state_next_state_data + 1] = 0
         curr_entity[entity_state_next_state_data + 2] = 0
+    }
+
+    sub SetPosition(ubyte entityIndex, uword xPos, uword yPos, bool bIntoNextStateData)
+    {
+        uword @zp curr_entity = entities + (entityIndex as uword << 5)
+        if (bIntoNextStateData == true)
+        {
+            pokew(curr_entity + entity_state_next_state_data + 2, xPos)
+            pokew(curr_entity + entity_state_next_state_data + 4, yPos)
+        }
+        else
+        {
+            pokew(curr_entity + entity_x, xPos)
+            pokew(curr_entity + entity_y, yPos)
+        }
     }
 
     sub UpdatePosition(ubyte entityIndex, word xPos, word yPos)
@@ -109,32 +125,19 @@ Entity
         pokew(curr_entity + entity_y, yPosA as uword)
     }
     
-    sub SetPosition(ubyte entityIndex, uword xPos, uword yPos, bool bIntoNextStateData)
-    {
-        uword @zp curr_entity = entities + (entityIndex as uword << 5)
-        if (bIntoNextStateData == true)
-        {
-            pokew(curr_entity + entity_state_next_state_data + 2, xPos)
-            pokew(curr_entity + entity_state_next_state_data + 4, yPos)
-        }
-        else
-        {
-            pokew(curr_entity + entity_x, xPos)
-            pokew(curr_entity + entity_y, yPos)
-        }
-    }
-
     sub UpdateEntity(ubyte entityIndex) -> bool
     {
         uword @zp curr_entity = entities + (entityIndex as uword << 5)
 
         if (curr_entity[entity_state] == state_static)
         {
-            return true;
+            return false;
         }
         if (curr_entity[entity_state] == state_formation)
         {
-            if (curr_entity[entity_state_data + 1] == formation_state_init)
+            ;txt.print("formation ")
+            ;txt.print_ub(curr_entity[entity_state_data + 1])
+            if (curr_entity[entity_state_data] == formation_state_init)
             {
                 word curr_x = peekw(curr_entity + entity_x) as word
                 word curr_y = peekw(curr_entity + entity_y) as word
@@ -153,13 +156,23 @@ Entity
 
                 ; do first step
                 
-                curr_entity[entity_state_data + 1] = formation_state_fly_to
+                curr_entity[entity_state_data] = formation_state_fly_to
             }
-            else if (curr_entity[entity_state_data + 1] == formation_state_fly_to)
+            else if (curr_entity[entity_state_data] == formation_state_fly_to)
             {
+                target_x = peekw(curr_entity + entity_state_data + 2) as word 
+                target_y = peekw(curr_entity + entity_state_data + 4) as word
+                pokew(curr_entity + entity_x, target_x as uword)
+                pokew(curr_entity + entity_y, target_y as uword)
+                sprite_info = SpritePathTables.GetSpriteRotationInfo(curr_entity[entity_ship_index], 0)
+                curr_entity[entity_sprite_index] = msb(sprite_info)
+                curr_entity[entity_sprite_setup] = lsb(sprite_info)
+
+                curr_entity[entity_state_data] = formation_state_in_slot
             }
-            else if (curr_entity[entity_state_data + 1] == formation_state_in_slot)
+            else if (curr_entity[entity_state_data] == formation_state_in_slot)
             {
+                curr_entity[entity_state] = state_static
             }
             return true;
         }
@@ -176,10 +189,11 @@ Entity
                 {
                     curr_entity[entity_state] = curr_entity[entity_state_next_state]
                     curr_entity[entity_state_data] = curr_entity[entity_state_next_state_data]
+                    curr_entity[entity_state_data + 1] = curr_entity[entity_state_next_state_data + 1]
                     if (curr_entity[entity_state_next_state] != state_none)
                     {
                         ubyte i
-                        for i in 1 to 10
+                        for i in 2 to 10
                         {
                             curr_entity[entity_state_data + i] = curr_entity[entity_state_next_state_data + i]
                         }
@@ -283,11 +297,10 @@ Entity
     
     sub UpdateSprites(ubyte startIndex, ubyte numSprites)
     {
-        uword @zp curr_entity = entities + (startIndex as uword * 16)
-        
-        ubyte sprite_num
+        uword @zp curr_entity = entities + (startIndex as uword << 5)
+
         cx16.r0 = $fc00 + (startIndex as uword * 8)
-        for sprite_num in startIndex to startIndex + numSprites - 1
+        repeat numSprites
         {
             cx16.r1 = ($400 + (curr_entity[entity_sprite_index] as uword * 4)) ; calc sprite vera address, but already shifted down 5 (since we only need upper 11 bits) 
             cx16.r2 = peekw(curr_entity + entity_x)

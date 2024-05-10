@@ -40,11 +40,13 @@ zsmkit_lib:
 
         txt.cls()
         txt.home()
-        txt.print(iso:"\nGALAX16")
+        txt.print("galax16\n")
 
-        const ubyte num_entities = 80
+        ubyte num_entities = 0
         const ubyte num_entities_static = 32
         SetupDemoEnitities(num_entities, num_entities_static)
+        Sequencer.InitSequencer(num_entities_static)
+        Sequencer.StartLevel(0)
         Entity.Begin()
         Entity.UpdateSprites(0, num_entities_static)
         Entity.End()
@@ -59,8 +61,9 @@ zsmkit_lib:
             if (not InputHandler.IsPaused())
             {
                 Entity.Begin()
+                num_entities = Sequencer.Update() + 1 - num_entities_static
                 ubyte j
-                for j in num_entities_static to num_entities_static + num_entities-1
+                for j in num_entities_static to (num_entities_static + num_entities) - 1
                 {
                     cx16.VERA_DC_BORDER = 2 + j % 1
                     if (Entity.UpdateEntity(j))
@@ -90,6 +93,7 @@ zsmkit_lib:
 
             cx16.VERA_DC_BORDER = 0
             sys.waitvsync()
+            cx16.VERA_DC_BORDER = 8
         }
     }
 
@@ -97,7 +101,7 @@ zsmkit_lib:
     {
         ubyte k
         Entity.Begin()
-        for k in 0 to numStatic-1
+        for k in 0 to numStatic - 1
         {
             Entity.Add(k, (k as uword * 16), 480 - 96, (k % 10) << 1, Entity.state_static, 0)
             if (Entity.UpdateEntity(k))
@@ -106,9 +110,9 @@ zsmkit_lib:
             }
         } 
         ubyte numUpdates = 0
-        for k in numStatic to numStatic + numShips-1
+        for k in numStatic to (numStatic + numShips) - 1
         {
-            Entity.Add(k, 128, 0, ((k>>2) % 10) << 1, Entity.state_onpath, (k % 2) * 5)
+            Entity.Add(k, 128, 0, ((k >> 2) % 10) << 1, Entity.state_onpath, (k % 2) * 5)
             Entity.SetNextState(k, Entity.state_onpath, (k % 2) * 5)
             repeat numUpdates
             {
@@ -117,7 +121,7 @@ zsmkit_lib:
                     void Entity.UpdateEntity(k)
                 }
             }
-            numUpdates+=1
+            numUpdates += 1
         }
         Entity.End()
     }

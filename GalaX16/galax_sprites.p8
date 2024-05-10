@@ -90,4 +90,33 @@ sprites
             rts
         }}
     }
+    
+    asmsub positionEx(ubyte bank @A, uword address @R0, uword xPos @R1, uword yPos @R2) clobbers(A) {
+        %asm {{
+            stz  cx16.VERA_CTRL
+            and  #1
+            ora  #%10000
+            sta  cx16.VERA_ADDR_H
+            lda  cx16.r0
+            sta  cx16.VERA_ADDR_L
+            lda  cx16.r0+1
+            sta  cx16.VERA_ADDR_M
+            lda  cx16.r1
+            sta  cx16.VERA_DATA0
+            lda  cx16.r1+1
+            sta  cx16.VERA_DATA0
+            lda  cx16.r2
+            sta  cx16.VERA_DATA0
+            lda  cx16.r2+1
+            sta  cx16.VERA_DATA0
+            rts
+        }}
+    }
+
+    ; xPos and yPox only use the lower 10 bits, the upper bits are ignored
+    sub position(ubyte spriteNum, uword xPos, uword yPos)
+    {
+        uword offset = spriteNum as uword << 3
+        positionEx(1, $fc02 + offset, xPos, yPos)
+    }    
 }

@@ -1,45 +1,40 @@
 Sequencer 
 {
     ; sequence rules
-    ; must start with a pace
-    ; must have entity/position/path in that order
-    ; formation is optional, but must immediately follow path
-    ; can have multiple entity sets 
-    ; must end with loop, set to repeat 0 or 1 to not loop and just do one time
-    ;
-    const ubyte sequence_pace = 0
+    ; must start with a repeat command
+    ; must have at least one entity command, but can have up to 4
+
+    const ubyte sequence_repeat = 0
     const ubyte sequence_entity = 1
-    const ubyte sequence_position = 2
-    const ubyte sequence_path = 3
-    const ubyte sequence_formation = 4
-    const ubyte sequence_loop = 5
+    const ubyte sequence_end    = 2
     
     const ubyte sequence_command = 0
-    const ubyte sequence_data0 = 1
-    const ubyte sequence_data1 = 2
     
-    ; data for pace
-    const ubyte sequence_pace_rate = 0          ; number of updates between loops
-    
-    ; data for entity
-    const ubyte sequence_entity_id = 0
-    const ubyte sequence_entity_numalt = 1      ; number of entities that take alt path
+    ; for entity command
+   
+    const ubyte sequence_entity_id      = 1
+    const ubyte sequence_entity_numalt  = 2      ; number of entities that take alt path
     
     ; data for position (note: these index into the positions array to get actual screen coords)
-    const ubyte sequence_pos_x = 0
-    const ubyte sequence_pos_y = 1
+    const ubyte sequence_pos_x = 3
+    const ubyte sequence_pos_y = 4
     
     ; data for path
-    const ubyte sequence_path_index = 0
-    const ubyte sequence_path_altindex = 1      ; if an entity takes an alt path then it doesn't go to formation
+    const ubyte sequence_path_index     = 5
+    const ubyte sequence_path_altindex  = 6      ; if an entity takes an alt path then it doesn't go to formation
     
-    ; data for formation
-    const ubyte sequence_formation_slot = 0     ; which formation slot (indexes into array of slot positions
-    const ubyte sequence_formation_inc = 0      ; when doing multiple loops, this increments the slot index per loop, must be at least 1
+    ; data for next state
+    const ubyte sequence_next_state         = 7
+    const ubyte sequence_next_state_data    = 8
+    const ubyte sequence_next_state_data2   = 9
 
-    ; data for end
-    const ubyte sequence_loop_index = 0         ; which sequence step to loop back to
-    const ubyte sequence_loop_repeat = 1        ; number of time to loop
+    ; if next state is formation
+    const ubyte sequence_formation_slot = 8     ; which formation slot (indexes into array of slot positions
+    const ubyte sequence_formation_inc  = 9     ; when doing multiple loops, this increments the slot index per loop, must be at least 1
+    
+    ; for repeat command
+    const ubyte sequence_repeat_count   = 1     ; repeat this many times
+    const ubyte sequence_repeat_pace    = 2     ; number of updates between loops
 
     word[] positions = [
         -16, ;0
@@ -58,40 +53,49 @@ Sequencer
         624, ;12
         640  ;13
     ]
-    
+
     ubyte[] sequence0 = [
-        0, 2, 0,
-        1, 0, 0,
-        2, 6, 0,
-        3, 0, 0,
-        4, 0, 1,
-        5, 1, 8
+        0,  6, 2,
+        1,  0, 0,  6, 0,  5, 0,  Entity.state_formation, 0, 1,
+        2
     ]
+
     ubyte[] sequence1 = [
-        0, 1, 0,
-        1, 1, 0,
-        2, 6, 0,
-        3, 5, 0,
-        4, 8, 1,
-        5, 1, 8
+        0,  6, 2,
+        1,  12, 0,  6, 0,  5, 0,  Entity.state_formation, 6, 1,
+        2
     ]
-    
+
+    ubyte[] sequence2 = [
+        0,  8, 2,
+        1,  4, 0,  6, 0,  0, 0,  Entity.state_formation, 12, 1,
+        2
+    ]
+
+    ubyte[] sequence3 = [
+        0,  8, 1,
+        1,  6, 0,  6, 0,  0, 0,  Entity.state_formation, 20, 1,
+        2
+    ]
+
     uword[] sequences = [
-        &sequence0, &sequence1
+        &sequence0, &sequence1, &sequence2, &sequence3
     ] 
 
     const ubyte level_set_sequence = 0
     const ubyte level_set_delay = 1
 
     ubyte[] level_set0 = [
-        0, 30,
-        1, 0,
+        0, 120,
+        1, 120,
+        2, 254,
+        3, 1,
         255, 255
     ]
     
     ubyte[] level_set1 = [
         1, 30,
-        0, 0,
+        0, 1,
         255, 255
     ]
     
@@ -139,27 +143,112 @@ Sequencer
 
     uword curr_sequence = 0
     ubyte sequence_curr_step = 0
-    ubyte sequence_curr_pace_rate = 0
-    ubyte sequence_curr_entity_id = 0
-    ubyte sequence_curr_entity_numalt = 0
     
-    ubyte sequence_repeat = 0
+    ubyte sequence_pace
+    ubyte sequence_curr_pace
+    ubyte sequence_num_repeats
+    ubyte sequence_curr_repeat
+    ubyte sequence_curr_entity_index
+    ubyte[16] sequence_formation_slots
 
-    sub Init()
+    ubyte sequencer_entity_index
+
+    sub InitSequencer(ubyte entityIndex)
     {
+        sequencer_entity_index = entityIndex
     }
 
-    sub Update()
+    sub Update() -> ubyte
     {
+        if (curr_sequence != 0)
+        {
+            if (sequence_curr_pace != 0)
+            {
+                sequence_curr_pace--
+            }
+            else
+            {
+                uword sequence_offset = &curr_sequence[sequence_curr_step]
+                when sequence_offset[sequence_command]
+                {
+                    sequence_repeat -> {
+                        sequence_pace = sequence_offset[sequence_repeat_pace]
+                        sequence_curr_pace = 0
+                        sequence_num_repeats = sequence_offset[sequence_repeat_count]
+                        sequence_curr_repeat = 0
+                        sequence_curr_entity_index = 0
+                        sequence_curr_step += 3
+                    }
+                    sequence_entity -> { 
+                        InitEntity(sequence_offset)
+                        sequence_curr_entity_index++
+                        sequence_curr_step += 10
+                    }
+                    sequence_end -> {
+                        sequence_curr_step = 3  ; return to just after repeat command
+                        sequence_curr_repeat++
+                        if (sequence_curr_repeat >= sequence_num_repeats)
+                        {
+                            curr_sequence = 0   ; end sequence
+                        }
+                        sequence_curr_pace = sequence_pace
+                    }
+                }
+            }
+        }
+        else if (curr_level != 0)
+        {
+            level_set_curr_delay--
+            if (level_set_curr_delay <= 0)
+            {
+                level_set_curr_step++
+                InitLevelStep()
+            }
+        }
+        return sequencer_entity_index
+    }
+
+    sub InitEntity(uword entity_data)
+    {
+        uword xPos = positions[entity_data[sequence_pos_x]] as uword
+        uword yPos = positions[entity_data[sequence_pos_y]] as uword
+
+        Entity.Add(sequencer_entity_index, xPos, yPos, entity_data[sequence_entity_id], Entity.state_onpath, entity_data[sequence_path_index])
+        Entity.SetNextState(sequencer_entity_index, entity_data[sequence_next_state], Entity.formation_state_init)
+        if (entity_data[sequence_next_state] == Entity.state_formation)
+        {
+            if (sequence_curr_repeat == 0)
+            {
+                sequence_formation_slots[sequence_curr_entity_index] = entity_data[sequence_formation_slot]
+            }
+            else
+            {
+                sequence_formation_slots[sequence_curr_entity_index] = sequence_formation_slots[sequence_curr_entity_index - 1] + entity_data[sequence_formation_inc]
+            }
+            SetEntityFormationPosition(sequencer_entity_index, sequence_formation_slots[sequence_curr_entity_index], true)
+        }
+        sequencer_entity_index++;
+    }
+
+    sub InitLevelStep()
+    {
+        level_set_curr_delay = curr_level[level_set_curr_step * 2 + level_set_delay]
+        if (level_set_curr_delay == 255)
+        {
+            curr_level = 0
+        }
+        else
+        {
+            curr_sequence = sequences[curr_level[level_set_curr_step * 2 + level_set_sequence]]
+            sequence_curr_step = 0
+            sequence_curr_entity_index = 0
+        }
     }
 
     sub StartLevel(ubyte level)
     {
         curr_level = levels[level]
         level_set_curr_step = 0
-        level_set_curr_delay = curr_level[level_set_curr_step * 2 + level_set_delay]
-        curr_sequence = sequences[curr_level[level_set_curr_step * 2 + level_set_sequence]]
-        sequence_curr_step = 0
-        
+        InitLevelStep()
     }
 }
