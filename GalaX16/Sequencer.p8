@@ -36,45 +36,54 @@ Sequencer
     const ubyte sequence_repeat_count   = 1     ; repeat this many times
     const ubyte sequence_repeat_pace    = 2     ; number of updates between loops
 
+    ; screen area is 512 x 400
     word[] positions = [
         -16, ;0
           0, ;1
          16, ;2
-         64, ;3
-        128, ;4
-        240, ;5
-        320, ;6
-        352, ;7
-        416, ;8
-        464, ;9
-        480, ;10
-        512, ;11
-        576, ;12
-        624, ;12
-        640  ;13
+         32, ;3
+         64, ;4
+         96, ;5
+        100, ;6
+        128, ;7
+        160, ;8
+        192, ;9
+        200, ;10
+        224, ;11
+        256, ;12
+        288, ;13
+        300, ;14
+        320, ;15
+        352, ;16
+        384, ;17
+        400, ;18
+        416, ;19
+        448, ;20
+        480, ;21
+        512  ;22
     ]
 
     ubyte[] sequence0 = [
-        0,  6, 2,
-        1,  0, 0,  6, 0,  5, 0,  Entity.state_formation, 0, 1,
+        0,   6, 4,
+        1,   0, 0,  9, 0,  6, 0,  Entity.state_formation, 0, 1,
         2
     ]
 
     ubyte[] sequence1 = [
-        0,  6, 2,
-        1,  12, 0,  6, 0,  5, 0,  Entity.state_formation, 6, 1,
+        0,   6, 4,
+        1,  12, 0,  15, 0,  7, 0,  Entity.state_formation, 6, 1,
         2
     ]
 
     ubyte[] sequence2 = [
-        0,  8, 2,
-        1,  4, 0,  6, 0,  0, 0,  Entity.state_formation, 12, 1,
+        0,   8, 4,
+        1,   4, 0,   9, 0,  6, 0,  Entity.state_formation, 12, 1,
         2
     ]
 
     ubyte[] sequence3 = [
-        0,  8, 1,
-        1,  6, 0,  6, 0,  0, 0,  Entity.state_formation, 20, 1,
+        0,   8, 4,
+        1,   6, 0,  15, 0,  7, 0,  Entity.state_formation, 20, 1,
         2
     ]
 
@@ -88,7 +97,7 @@ Sequencer
     ubyte[] level_set0 = [
         0, 120,
         1, 120,
-        2, 254,
+        2, 120,
         3, 1,
         255, 255
     ]
