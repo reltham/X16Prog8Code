@@ -65,72 +65,52 @@ InputHandler
         }
         if (newup != oldup and newup == true)
         {
-            zsmkit.zsm_close(1)
-            zsmkit.zsm_setfile(1, iso:"UFO_16.ZSM")
-            zsmkit.zsm_play(1)
+            Sounds.PlaySFX(0)
             txt.print("pressed up\n")
         }
         if (newdown != olddown and newdown == true)
         {
-            zsmkit.zsm_close(2)
-            zsmkit.zsm_setfile(2, iso:"UFO_14.ZSM")
-            zsmkit.zsm_play(2)
+            Sounds.PlaySFX(1)
             txt.print("pressed down\n")
         }
         if (newleft != oldleft and newleft == true)
         {
-            zsmkit.zsm_close(3)
-            zsmkit.zsm_setfile(3, iso:"BOOM_15.ZSM")
-            zsmkit.zsm_play(3)
+            Sounds.PlaySFX(2)
             txt.print("pressed left\n")
         }
         if (newright != oldright and newright == true)
         {
-            zsmkit.zsm_close(1)
-            zsmkit.zsm_setfile(1, iso:"PEW_16.ZSM")
-            zsmkit.zsm_play(1)
+            Sounds.PlaySFX(3)
             txt.print("pressed right\n")
         }
         if (newfire_a != oldfire_a and newfire_a == true)
         {
-            zsmkit.zsm_close(3)
-            zsmkit.zsm_setfile(3, iso:"SWEEPDOWNL_15.ZSM")
-            zsmkit.zsm_play(3)
+            Sounds.PlaySFX(4)
             txt.print("pressed a\n")
         }
         if (newfire_b != oldfire_b and newfire_b == true)
         {
-            zsmkit.zsm_close(3)
-            zsmkit.zsm_setfile(3, iso:"SWEEPUP_15.ZSM")
-            zsmkit.zsm_play(3)
+            Sounds.PlaySFX(5)
             txt.print("pressed b\n")
         }
         if (newfire_l != oldfire_l and newfire_l == true)
         {
-            zsmkit.zsm_close(1)
-            zsmkit.zsm_setfile(1, iso:"WIBBLE_16.ZSM")
-            zsmkit.zsm_play(1)
+            Sounds.PlaySFX(6)
             txt.print("pressed ls\n")
         }
         if (newfire_r != oldfire_r and newfire_r == true)
         {
-            zsmkit.zsm_close(2)
-            zsmkit.zsm_setfile(2, iso:"UFO_14.ZSM")
-            zsmkit.zsm_play(2)
+            Sounds.PlaySFX(0)
             txt.print("pressed rs\n")
         }
         if (newfire_x != oldfire_x and newfire_x == true)
         {
-            zsmkit.zsm_close(3)
-            zsmkit.zsm_setfile(3, iso:"BOOM_15.ZSM")
-            zsmkit.zsm_play(3)
+            Sounds.PlaySFX(1)
             txt.print("pressed x\n")
         }
         if (newfire_y != oldfire_y and newfire_y == true)
         {
-            zsmkit.zsm_close(1)
-            zsmkit.zsm_setfile(1, iso:"PEW_16.ZSM")
-            zsmkit.zsm_play(1)
+            Sounds.PlaySFX(2)
             txt.print("pressed y\n")
         }
         oldup = newup

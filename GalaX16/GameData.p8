@@ -13,42 +13,40 @@
 
 GameData
 {
-    ubyte[] info_icons = [  8,    ; 1
-                           24,   ; 5
-                           48,   ; 10
-                           64,   ; 20
-                           80,   ; 30
-                           96,   ; 50
-                           112 ]  ; player ships remaining
-
-    ubyte[] scoring_sprites = [ 162,  ; 150
+    ubyte[] sprite_indices = [  8,    ; 1
+                                24,   ; 5
+                                40,   ; 10
+                                56,   ; 20
+                                72,   ; 30
+                                88,   ; 50
+                                104,  ; player ships remaining
+                                162,  ; 150
                                 163,  ; 400
-                                164,  ; 800
+                                ;164,  ; 800
                                 165,  ; 1000
                                 166,  ; 1500
                                 167,  ; 1600
-                                149,  ; 2000 (2 sprites)
-                                151 ] ; 3000 (2 sprites)
-
-    ubyte[] enemy_explosion = [ 146, 
+                                ;149,  ; 2000 (2 sprites)
+                                ;151,  ; 3000 (2 sprites)
+                                168,  ; enemy bullet
+                                179,  ; player bullet
+                                146,  ; enemy explosion 
                                 147,
-                                148,
-                                133,  ; 4 sprites
-                                117 ] ; 4 sprites
-
-    ubyte[] player_explosion = [ 240,  ; these are all 4 sprites each
-                                 244,
-                                 248,
-                                 252 ] 
-
-    const ubyte enemy_bullet  = 168
-    const ubyte player_bullet = 179
-
-    ; only the first 4 ships have formation anims
-    ubyte[] ship_sprite_formation_anims = [  0,  1,
-                                            16, 17,
-                                            48, 49,
-                                            80, 81 ]
+                                148
+    ]
+    ubyte[] sprite_indices_4 = [
+                                133,  ; enemy eplosion
+                                117,  
+                                240,  ; player explosion
+                                244,
+                                248,
+                                252
+    ]
+    
+    sub GetSpriteIndicesLen() -> ubyte
+    {
+        return len(sprite_indices)
+    }
 
     ubyte[] four_sprite_offsets = [  0,  0,
                                     16,  0,

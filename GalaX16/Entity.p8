@@ -31,10 +31,19 @@ Entity
     const ubyte state_static = 2
     const ubyte state_onpath = 3
     const ubyte state_formation = 4
+    const ubyte state_player_bullet = 5
+    const ubyte state_enemy_bullet = 6
 
     const ubyte formation_state_init = 1
     const ubyte formation_state_fly_to = 2
     const ubyte formation_state_in_slot = 3
+    
+    ; only the first 4 ships have formation anims
+    ubyte[] ship_sprite_formation_anims = [  0,  1,
+                                            16, 17,
+                                            48, 49,
+                                            80, 81 ]
+
 
     const ubyte entities_bank = 2
     const uword entities = $a000
@@ -54,9 +63,17 @@ Entity
         uword @zp curr_entity = entities + (entityIndex as uword << 5)
         pokew(curr_entity + entity_x, xPos as uword)
         pokew(curr_entity + entity_y, yPos as uword)
-        curr_entity[entity_sprite_index] = SpritePathTables.GetSpriteOffset(shipIndex)
+        if (state == state_onpath or state == state_formation)
+        {
+            curr_entity[entity_sprite_index] = SpritePathTables.GetSpriteOffset(shipIndex)
+            curr_entity[entity_ship_index] = shipIndex
+        }
+        else
+        {
+            curr_entity[entity_sprite_index] = shipIndex
+            curr_entity[entity_ship_index] = -1
+        }
         curr_entity[entity_sprite_setup] = 0
-        curr_entity[entity_ship_index] = shipIndex
         curr_entity[entity_state] = state
         curr_entity[entity_state_data] = stateData
         curr_entity[entity_state_data + 1] = 0
@@ -73,9 +90,10 @@ Entity
             curr_entity[entity_state_next_state_data + i] = -1
         }
 
+        ; move sprite off screen
+        sprites.position(entityIndex, 0, (-16) as uword)
         ; sprites are 16x16, 8bpp, and between layer 0 and layer 1
         sprites.setup(entityIndex, %00000101, %00001000, 0)
-        sprites.position(entityIndex, 0, (-16) as uword)
     }
 
     sub SetNextState(ubyte entityIndex, ubyte nextState, ubyte nextStateData)
@@ -143,45 +161,66 @@ Entity
                 word curr_y = peekw(curr_entity + entity_y) as word
                 word target_x = peekw(curr_entity + entity_state_data + 2) as word 
                 word target_y = peekw(curr_entity + entity_state_data + 4) as word
-                byte diff_x = (target_x - curr_x) as byte
-                byte diff_y = (target_y - curr_y) as byte
-                ubyte direction = math.direction_sc(0, 0, diff_x, diff_y)
+                word diff_x = (target_x - curr_x)
+                word diff_y = (target_y - curr_y)
+                if (diff_y > -130)
+                {
+                    curr_entity[entity_state_data + 6] = (diff_x / 16) as ubyte
+                    curr_entity[entity_state_data + 7] = (diff_y / 16) as ubyte
+                    curr_entity[entity_state_data + 8] = 16
+                }
+                else
+                {
+                    curr_entity[entity_state_data + 6] = (diff_x / 24) as ubyte
+                    curr_entity[entity_state_data + 7] = (diff_y / 24) as ubyte
+                    curr_entity[entity_state_data + 8] = 24
+                }
+                ubyte direction = 24 - ((math.direction_sc(0, 0, curr_entity[entity_state_data + 6] as byte, curr_entity[entity_state_data + 7] as byte) + 18) % 24)
 
                 ; set sprite image index and flips
                 uword sprite_info = SpritePathTables.GetSpriteRotationInfo(curr_entity[entity_ship_index], direction)
                 curr_entity[entity_sprite_index] = msb(sprite_info)
                 curr_entity[entity_sprite_setup] = lsb(sprite_info)
 
-                ; calc x,y steps and number of steps to reach target and save into state_data
-
                 ; do first step
+                curr_x += curr_entity[entity_state_data + 6] as byte
+                curr_y += curr_entity[entity_state_data + 7] as byte
+                pokew(curr_entity + entity_x, curr_x as uword)
+                pokew(curr_entity + entity_y, curr_y as uword)
                 
                 curr_entity[entity_state_data] = formation_state_fly_to
             }
             else if (curr_entity[entity_state_data] == formation_state_fly_to)
             {
-                target_x = peekw(curr_entity + entity_state_data + 2) as word 
-                target_y = peekw(curr_entity + entity_state_data + 4) as word
-                pokew(curr_entity + entity_x, target_x as uword)
-                pokew(curr_entity + entity_y, target_y as uword)
-                sprite_info = SpritePathTables.GetSpriteRotationInfo(curr_entity[entity_ship_index], 0)
-                curr_entity[entity_sprite_index] = msb(sprite_info)
-                curr_entity[entity_sprite_setup] = lsb(sprite_info)
-
-                curr_entity[entity_state_data] = formation_state_in_slot
+                curr_x = peekw(curr_entity + entity_x) as word
+                curr_y = peekw(curr_entity + entity_y) as word
+                curr_x += curr_entity[entity_state_data + 6] as byte
+                curr_y += curr_entity[entity_state_data + 7] as byte
+                curr_entity[entity_state_data + 8]--
+                if (curr_entity[entity_state_data + 8] == 0)
+                {
+                    curr_x = peekw(curr_entity + entity_state_data + 2) as word 
+                    curr_y = peekw(curr_entity + entity_state_data + 4) as word
+                    curr_entity[entity_state_data] = formation_state_in_slot
+                }
+                pokew(curr_entity + entity_x, curr_x as uword)
+                pokew(curr_entity + entity_y, curr_y as uword)
             }
             else if (curr_entity[entity_state_data] == formation_state_in_slot)
             {
+                sprite_info = SpritePathTables.GetSpriteRotationInfo(curr_entity[entity_ship_index], 0)
+                curr_entity[entity_sprite_index] = msb(sprite_info)
+                curr_entity[entity_sprite_setup] = lsb(sprite_info)
                 curr_entity[entity_state] = state_static
             }
-            return true;
+            return false;
         }
         if (curr_entity[entity_state] == state_onpath)
         {
             byte[7] pathEntry
-            cx16.VERA_DC_BORDER = 4
+            ;cx16.VERA_DC_BORDER = 4
             SpritePathTables.GetPathEntry(curr_entity[entity_state_path], curr_entity[entity_state_path_offset], curr_entity[entity_ship_index], &pathEntry)
-            cx16.VERA_DC_BORDER = 2
+            ;cx16.VERA_DC_BORDER = 2
 
             if (pathEntry[0] == 0)
             {

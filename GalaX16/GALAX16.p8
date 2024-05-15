@@ -10,6 +10,8 @@
 %import SpritePathTables
 %import Entity
 %import Sequencer
+%import Sounds
+%import GameData
 %zeropage kernalsafe
 
 main $0830
@@ -17,13 +19,8 @@ main $0830
 zsmkit_lib:
     ; this has to be the first statement to make sure it loads at the specified module address $0830
     %asmbinary "zsmkit-0830.bin"
-    const ubyte zsmkit_bank = 1
+
     const ubyte game_banks_start = 2
-    const ubyte zsmdata_bank_start = 3
-    
-    ; variables set in the zsmkit callback
-    bool loopchanged = false
-    bool beat = false
 
     sub start()
     {
@@ -32,15 +29,15 @@ zsmkit_lib:
         txt.home()
         txt.print(iso:"\nLOADING...")
 
-        SetupZSMKit()
+        Sounds.SetupZSMKit()
 
         InputHandler.Init()
         SpritePathTables.Init(game_banks_start);
         sprites.Init()
 
-        txt.cls()
+        ;txt.cls()
         txt.home()
-        txt.print("galax16\n")
+        txt.print("galax16   \n")
 
         ubyte num_entities = 0
         const ubyte num_entities_static = 32
@@ -50,50 +47,51 @@ zsmkit_lib:
         Entity.Begin()
         Entity.UpdateSprites(0, num_entities_static)
         Entity.End()
+        ubyte rate = 0
         repeat
         {
-            cx16.VERA_DC_BORDER = 8
+            ;cx16.VERA_DC_BORDER = 8
             Entity.Begin()
             Entity.UpdateSprites(num_entities_static, num_entities)
             Entity.End()
 
-            cx16.VERA_DC_BORDER = 2
-            if (not InputHandler.IsPaused())
+            ;cx16.VERA_DC_BORDER = 2
+            if (not InputHandler.IsPaused()); and (rate % 2) == 0)
             {
                 Entity.Begin()
                 num_entities = Sequencer.Update() + 1 - num_entities_static
                 ubyte j
                 for j in num_entities_static to (num_entities_static + num_entities) - 1
                 {
-                    cx16.VERA_DC_BORDER = 2 + j % 1
+                    ;cx16.VERA_DC_BORDER = 2 + j % 1
                     if (Entity.UpdateEntity(j))
                     {
                         void Entity.UpdateEntity(j)
                     }
-                    cx16.VERA_DC_BORDER = 2
                 }
                 Entity.End()
             }
-            cx16.VERA_DC_BORDER = 7
+            ;cx16.VERA_DC_BORDER = 7
+            rate++
 
             InputHandler.DoScan();
 
-            cx16.VERA_DC_BORDER = 5
+            ;cx16.VERA_DC_BORDER = 5
             zsmkit.zsm_fill_buffers()
 
-            if (beat)
+            if (Sounds.GetBeat())
             {
-                beat = false
+                Sounds.ClearBeat()
             }
 
-            if (loopchanged)
+            if (Sounds.GetLoopChanged())
             {
-                loopchanged = false
+                Sounds.ClearLoopChanged()
             }
 
-            cx16.VERA_DC_BORDER = 0
+            ;cx16.VERA_DC_BORDER = 0
             sys.waitvsync()
-            cx16.VERA_DC_BORDER = 8
+            ;cx16.VERA_DC_BORDER = 8
         }
     }
 
@@ -103,7 +101,16 @@ zsmkit_lib:
         Entity.Begin()
         for k in 0 to numStatic - 1
         {
-            Entity.Add(k, (k as uword * 16), 480 - 96, (k % 10) << 1, Entity.state_static, 0)
+            ubyte sprite_index
+            if (k < len(GameData.sprite_indices))
+            {
+                sprite_index = GameData.sprite_indices[k]
+            }
+            else
+            {
+                sprite_index = SpritePathTables.GetSpriteOffset((k % 10) << 1)
+            }
+            Entity.Add(k, (k as uword * 16), 384, sprite_index, Entity.state_static, 0)
             if (Entity.UpdateEntity(k))
             {
                 void Entity.UpdateEntity(k)
@@ -124,56 +131,5 @@ zsmkit_lib:
             numUpdates += 1
         }
         Entity.End()
-    }
-
-    sub SetupZSMKit()
-    {
-        ; setup zsmkit
-        zsmkit.zsm_init_engine(zsmkit_bank)
-        cx16.rambank(zsmdata_bank_start)
-        void diskio.load_raw(iso:"TFVRISESYNC.ZSM", $A000)
-        ubyte zcmbank = cx16.getrambank() + 1
-        cx16.rambank(zsmdata_bank_start)
-        zsmkit.zsm_setmem(0, $A000)
-
-        ; load 2 zcm's into memory
-        cx16.rambank(zcmbank)
-        void diskio.load_raw(iso:"1.ZCM", $A000)
-
-        ubyte zcmbank2 = cx16.getrambank() + 1
-        cx16.rambank(zcmbank2)
-        void diskio.load_raw(iso:"2.ZCM", $A000)
-
-        cx16.rambank(zcmbank2)
-        zsmkit.zcm_setmem(0, $A000)
-        cx16.rambank(zcmbank)
-        zsmkit.zcm_setmem(1, $A000)
-        
-        ; start the music playing
-        zsmkit.zsm_setatten(0, 40)
-        zsmkit.zsm_play(0)
-        zsmkit.zsm_setcb(0, &zsm_callback_handler)
-
-        ; call zsm_tick from irq handler
-        zsmkit.zsmkit_setisr()
-
-        ; set back to kernel bank
-        cx16.rambank(0)
-    }
-
-    asmsub zsm_callback_handler(ubyte prio @X, ubyte type @Y, ubyte arg @A) {
-        %asm {{
-            cpy #1
-            beq _loop
-            cpy #2
-            beq _sync
-            rts
-_loop:
-            inc p8v_loopchanged
-            rts
-_sync:
-            inc p8v_beat
-            rts
-        }}
     }
 }
