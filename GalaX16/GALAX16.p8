@@ -59,9 +59,9 @@ zsmkit_lib:
             if (not InputHandler.IsPaused()); and (rate % 2) == 0)
             {
                 Entity.Begin()
-                num_entities = Sequencer.Update() + 1 - num_entities_static
+                num_entities = Sequencer.Update() - num_entities_static
                 ubyte j
-                for j in num_entities_static to (num_entities_static + num_entities) - 1
+                for j in num_entities_static to (num_entities_static + num_entities)
                 {
                     ;cx16.VERA_DC_BORDER = 2 + j % 1
                     if (Entity.UpdateEntity(j))
