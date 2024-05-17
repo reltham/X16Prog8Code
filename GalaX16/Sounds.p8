@@ -63,10 +63,10 @@ Sounds
         ; setup zsmkit
         zsmkit.zsm_init_engine(zsmkit_bank)
         cx16.rambank(zsmdata_bank_start)
-        ;void diskio.load_raw(iso:"TFVRISESYNC.ZSM", $A000)
+        void diskio.load_raw(iso:"TFVRISESYNC.ZSM", $A000)
         ubyte zcmbank = cx16.getrambank() + 1
-        ;cx16.rambank(zsmdata_bank_start)
-        ;zsmkit.zsm_setmem(0, $A000)
+        cx16.rambank(zsmdata_bank_start)
+        zsmkit.zsm_setmem(0, $A000)
 
         ; load 2 zcm's into memory
         cx16.rambank(zcmbank)
@@ -98,9 +98,9 @@ Sounds
         }
 
         ; start the music playing
-        ;zsmkit.zsm_setatten(0, 40)
-        ;zsmkit.zsm_play(0)
-        ;zsmkit.zsm_setcb(0, &zsm_callback_handler)
+        zsmkit.zsm_setatten(0, 40)
+        zsmkit.zsm_play(0)
+        zsmkit.zsm_setcb(0, &zsm_callback_handler)
 
         ; call zsm_tick from irq handler
         zsmkit.zsmkit_setisr()

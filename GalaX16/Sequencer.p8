@@ -139,12 +139,12 @@ Sequencer
         338
     ]
     uword[] formation_positions_y = [
-          0,
          20,
          40,
          60,
          80,
-        100
+        100,
+        120
     ]
     ubyte[] formation_slots = [
                        2, 0,  3, 0,  4, 0,  5, 0,  6, 0,  7, 0,                  ; slots 0-5

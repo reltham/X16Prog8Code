@@ -21,6 +21,8 @@ zsmkit_lib:
     %asmbinary "zsmkit-0830.bin"
 
     const ubyte game_banks_start = 2
+    ubyte num_entities = 0
+    ubyte num_bullets = 0
 
     sub start()
     {
@@ -39,29 +41,39 @@ zsmkit_lib:
         txt.home()
         txt.print("galax16   \n")
 
-        ubyte num_entities = 0
-        const ubyte num_entities_static = 32
-        SetupDemoEnitities(num_entities, num_entities_static)
-        Sequencer.InitSequencer(num_entities_static)
+        const ubyte sequencer_entities_start = 32 
+        ubyte num_sequencer_entities = 0
+        Sequencer.InitSequencer(sequencer_entities_start)
         Sequencer.StartLevel(0)
         Entity.Begin()
-        Entity.UpdateSprites(0, num_entities_static)
+        Entity.Add(num_entities, 2, 366, 18, Entity.state_player, 0)
+        num_entities++
         Entity.End()
         ubyte rate = 0
         repeat
         {
             ;cx16.VERA_DC_BORDER = 8
             Entity.Begin()
-            Entity.UpdateSprites(num_entities_static, num_entities)
+            Entity.UpdateSprites(0, num_entities + num_bullets)
+            Entity.UpdateSprites(sequencer_entities_start, num_sequencer_entities)
             Entity.End()
 
             ;cx16.VERA_DC_BORDER = 2
             if (not InputHandler.IsPaused()); and (rate % 2) == 0)
             {
                 Entity.Begin()
-                num_entities = Sequencer.Update() - num_entities_static
+
+                num_sequencer_entities = Sequencer.Update() - sequencer_entities_start
                 ubyte j
-                for j in num_entities_static to (num_entities_static + num_entities)
+                for j in 0 to (num_entities + num_bullets) - 1
+                {
+                    ;cx16.VERA_DC_BORDER = 2 + j % 1
+                    if (Entity.UpdateEntity(j))
+                    {
+                        void Entity.UpdateEntity(j)
+                    }
+                }
+                for j in sequencer_entities_start to sequencer_entities_start + num_sequencer_entities
                 {
                     ;cx16.VERA_DC_BORDER = 2 + j % 1
                     if (Entity.UpdateEntity(j))
@@ -75,6 +87,16 @@ zsmkit_lib:
             rate++
 
             InputHandler.DoScan();
+            if (InputHandler.fire_bullet == true)
+            {
+                if (num_bullets < 1)
+                {
+                    Entity.Begin()
+                    Entity.Add(num_entities + num_bullets, InputHandler.player_offset, 350, GameData.sprite_indices[GameData.player_bullet], Entity.state_player_bullet, 0)
+                    num_bullets++
+                    Entity.End()
+                }
+            }
 
             ;cx16.VERA_DC_BORDER = 5
             zsmkit.zsm_fill_buffers()
@@ -93,6 +115,14 @@ zsmkit_lib:
             sys.waitvsync()
             ;cx16.VERA_DC_BORDER = 8
         }
+    }
+    
+    sub RemoveBullet()
+    {
+        Entity.Begin()
+        Entity.UpdateSprites(num_entities, num_bullets)
+        Entity.End()
+        num_bullets--
     }
 
     sub SetupDemoEnitities(ubyte numShips, ubyte numStatic)

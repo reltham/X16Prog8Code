@@ -63,7 +63,7 @@ Entity
         uword @zp curr_entity = entities + (entityIndex as uword << 5)
         pokew(curr_entity + entity_x, xPos as uword)
         pokew(curr_entity + entity_y, yPos as uword)
-        if (state == state_onpath or state == state_formation)
+        if (state == state_onpath or state == state_formation or state == state_player)
         {
             curr_entity[entity_sprite_index] = SpritePathTables.GetSpriteOffset(shipIndex)
             curr_entity[entity_ship_index] = shipIndex
@@ -149,12 +149,27 @@ Entity
 
         if (curr_entity[entity_state] == state_static)
         {
-            return false;
+            return false
+        }
+        if (curr_entity[entity_state] == state_player)
+        {
+            pokew(curr_entity + entity_x, InputHandler.player_offset)
+            return false
+        }
+        if (curr_entity[entity_state] == state_player_bullet)
+        {
+            word curr_bullet_y = peekw(curr_entity + entity_y) as word
+            curr_bullet_y -= 8
+            pokew(curr_entity + entity_y, curr_bullet_y as uword)
+            if (curr_bullet_y < -16)
+            {
+                curr_entity[entity_state] = state_none
+                main.RemoveBullet()
+            }
+            return false
         }
         if (curr_entity[entity_state] == state_formation)
         {
-            ;txt.print("formation ")
-            ;txt.print_ub(curr_entity[entity_state_data + 1])
             if (curr_entity[entity_state_data] == formation_state_init)
             {
                 word curr_x = peekw(curr_entity + entity_x) as word
@@ -205,15 +220,15 @@ Entity
                 }
                 pokew(curr_entity + entity_x, curr_x as uword)
                 pokew(curr_entity + entity_y, curr_y as uword)
-            }
-            else if (curr_entity[entity_state_data] == formation_state_in_slot)
-            {
                 sprite_info = SpritePathTables.GetSpriteRotationInfo(curr_entity[entity_ship_index], 0)
                 curr_entity[entity_sprite_index] = msb(sprite_info)
                 curr_entity[entity_sprite_setup] = lsb(sprite_info)
+            }
+            else if (curr_entity[entity_state_data] == formation_state_in_slot)
+            {
                 curr_entity[entity_state] = state_static
             }
-            return false;
+            return false
         }
         if (curr_entity[entity_state] == state_onpath)
         {

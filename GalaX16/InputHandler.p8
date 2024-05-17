@@ -15,6 +15,9 @@ InputHandler
     bool oldfire_l = false
     bool oldfire_r = false
 
+    uword player_offset = 0
+    bool fire_bullet = false
+
     sub Init()
     {
         ; init joystick (0 = keyboard)
@@ -26,7 +29,7 @@ InputHandler
     {
         return paused
     }
-
+    
     sub DoScan()
     {
         joystick.scan()
@@ -66,52 +69,55 @@ InputHandler
         if (newup != oldup and newup == true)
         {
             Sounds.PlaySFX(0)
-            txt.print("pressed up\n")
         }
         if (newdown != olddown and newdown == true)
         {
             Sounds.PlaySFX(1)
-            txt.print("pressed down\n")
         }
-        if (newleft != oldleft and newleft == true)
+        if (newleft == true)
         {
-            Sounds.PlaySFX(2)
-            txt.print("pressed left\n")
+            player_offset -= 4
+            if (player_offset < 2)
+            {
+                player_offset = 2
+            }
         }
-        if (newright != oldright and newright == true)
+        if (newright == true)
         {
-            Sounds.PlaySFX(3)
-            txt.print("pressed right\n")
+            player_offset += 4
+            if (player_offset > 494)
+            {
+                player_offset = 494
+            }
         }
         if (newfire_a != oldfire_a and newfire_a == true)
         {
-            Sounds.PlaySFX(4)
-            txt.print("pressed a\n")
+            Sounds.PlaySFX(3)
+            fire_bullet = true
+        }
+        else
+        {
+            fire_bullet = false
         }
         if (newfire_b != oldfire_b and newfire_b == true)
         {
-            Sounds.PlaySFX(5)
-            txt.print("pressed b\n")
+            Sounds.PlaySFX(4)
         }
         if (newfire_l != oldfire_l and newfire_l == true)
         {
-            Sounds.PlaySFX(6)
-            txt.print("pressed ls\n")
+            Sounds.PlaySFX(5)
         }
         if (newfire_r != oldfire_r and newfire_r == true)
         {
-            Sounds.PlaySFX(0)
-            txt.print("pressed rs\n")
+            Sounds.PlaySFX(6)
         }
         if (newfire_x != oldfire_x and newfire_x == true)
         {
-            Sounds.PlaySFX(1)
-            txt.print("pressed x\n")
+            Sounds.PlaySFX(0)
         }
         if (newfire_y != oldfire_y and newfire_y == true)
         {
-            Sounds.PlaySFX(2)
-            txt.print("pressed y\n")
+            Sounds.PlaySFX(1)
         }
         oldup = newup
         olddown = newdown
