@@ -103,29 +103,6 @@ Sequencer
         &sequence0, &sequence1, &sequence2, &sequence3, &sequence4, &sequence5
     ] 
 
-    const ubyte level_set_sequence = 0
-    const ubyte level_set_delay = 1
-
-    ubyte[] level_set0 = [
-        0, 120,
-        1, 120,
-        2, 120,
-        3, 120,
-        4, 120,
-        5, 1,
-        255, 255
-    ]
-    
-    ubyte[] level_set1 = [
-        1, 30,
-        0, 1,
-        255, 255
-    ]
-    
-    uword[] levels = [
-         &level_set0, &level_set1
-    ]
-    
     uword[] formation_positions_x = [
         158,
         178,
@@ -154,11 +131,29 @@ Sequencer
           0, 4, 1, 4,  2, 4,  3, 4,  4, 4,  5, 4,  6, 4,  7, 4,  8, 4,  9, 4,    ; slots 28-37
           0, 5, 1, 5,  2, 5,  3, 5,  4, 5,  5, 5,  6, 5,  7, 5,  8, 5,  9, 5     ; slots 38-47
     ]
+
+    const ubyte level_set_sequence = 0
+    const ubyte level_set_delay = 1
+
+    ubyte[] level_set0 = [
+        0, 120,
+        1, 120,
+        2, 120,
+        3, 120,
+        4, 120,
+        5, 120,
+        255, 255
+    ]
     
-    sub SetEntityFormationPosition(ubyte entityIndex, ubyte slotIndex, bool bIntoNextStateData)
-    {
-        Entity.SetPosition(entityIndex, formation_positions_x[formation_slots[slotIndex*2]], formation_positions_y[formation_slots[(slotIndex*2)+1]], bIntoNextStateData)
-    }
+    ubyte[] level_set1 = [
+        1, 30,
+        0, 1,
+        255, 255
+    ]
+    
+    uword[] levels = [
+         &level_set0, &level_set1
+    ]
     
     uword curr_level = 0
     ubyte level_set_curr_step = 0
@@ -167,14 +162,14 @@ Sequencer
     uword curr_sequence = 0
     ubyte sequence_curr_step = 0
     
-    ubyte sequence_pace
-    ubyte sequence_curr_pace
-    ubyte sequence_num_repeats
-    ubyte sequence_curr_repeat
-    ubyte sequence_curr_entity_index
-    ubyte[16] sequence_formation_slots
+    ubyte sequence_pace = 0
+    ubyte sequence_curr_pace = 0
+    ubyte sequence_num_repeats = 0
+    ubyte sequence_curr_repeat = 0
+    ubyte sequence_curr_entity_index = 0
+    ubyte[16] sequence_formation_slots = 0
 
-    ubyte sequencer_entity_index
+    ubyte sequencer_entity_index = 0
 
     sub InitSequencer(ubyte entityIndex)
     {
@@ -185,7 +180,7 @@ Sequencer
     {
         if (curr_sequence != 0)
         {
-            if (sequence_curr_pace != 0)
+            if (sequence_curr_pace > 0)
             {
                 sequence_curr_pace--
             }
@@ -231,6 +226,11 @@ Sequencer
         return sequencer_entity_index
     }
 
+    sub SetEntityFormationPosition(ubyte entityIndex, ubyte slotIndex, bool bIntoNextStateData)
+    {
+        Entity.SetPosition(entityIndex, formation_positions_x[formation_slots[slotIndex*2]], formation_positions_y[formation_slots[(slotIndex*2)+1]], bIntoNextStateData)
+    }
+
     sub InitEntity(uword entity_data)
     {
         uword xPos = positions[entity_data[sequence_pos_x]] as uword
@@ -259,11 +259,13 @@ Sequencer
         if (level_set_curr_delay == 255)
         {
             curr_level = 0
+            Entity.enable_formation_moving = true
         }
         else
         {
             curr_sequence = sequences[curr_level[level_set_curr_step * 2 + level_set_sequence]]
             sequence_curr_step = 0
+            sequence_curr_pace = 0
             sequence_curr_entity_index = 0
         }
     }

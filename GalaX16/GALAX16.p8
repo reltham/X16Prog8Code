@@ -22,8 +22,8 @@ zsmkit_lib:
 
     const ubyte game_banks_start = 2
     ubyte num_entities = 0
-    ubyte num_bullets = 0
-
+    uword score = 0
+    
     sub start()
     {
         void cx16.screen_mode(8, false)
@@ -54,18 +54,18 @@ zsmkit_lib:
         {
             ;cx16.VERA_DC_BORDER = 8
             Entity.Begin()
-            Entity.UpdateSprites(0, num_entities + num_bullets)
+            Entity.UpdateSprites(0, num_entities + Entity.num_bullets)
             Entity.UpdateSprites(sequencer_entities_start, num_sequencer_entities)
             Entity.End()
 
             ;cx16.VERA_DC_BORDER = 2
-            if (not InputHandler.IsPaused()); and (rate % 2) == 0)
+            if (not InputHandler.IsPaused()); and (rate % 8) == 0)
             {
                 Entity.Begin()
 
                 num_sequencer_entities = Sequencer.Update() - sequencer_entities_start
                 ubyte j
-                for j in 0 to (num_entities + num_bullets) - 1
+                for j in 0 to (num_entities + Entity.num_bullets) - 1
                 {
                     ;cx16.VERA_DC_BORDER = 2 + j % 1
                     if (Entity.UpdateEntity(j))
@@ -89,13 +89,7 @@ zsmkit_lib:
             InputHandler.DoScan();
             if (InputHandler.fire_bullet == true)
             {
-                if (num_bullets < 1)
-                {
-                    Entity.Begin()
-                    Entity.Add(num_entities + num_bullets, InputHandler.player_offset, 350, GameData.sprite_indices[GameData.player_bullet], Entity.state_player_bullet, 0)
-                    num_bullets++
-                    Entity.End()
-                }
+                Entity.AddPlayerBullet(num_entities)
             }
 
             ;cx16.VERA_DC_BORDER = 5
@@ -111,20 +105,23 @@ zsmkit_lib:
                 Sounds.ClearLoopChanged()
             }
 
+            txt.home()
+            txt.nl()
+            txt.spc()
+            txt.print_uw(score)
+            txt.print("0")
+
             ;cx16.VERA_DC_BORDER = 0
             sys.waitvsync()
             ;cx16.VERA_DC_BORDER = 8
         }
     }
     
-    sub RemoveBullet()
+    sub ScoreHit(ubyte shipIndex)
     {
-        Entity.Begin()
-        Entity.UpdateSprites(num_entities, num_bullets)
-        Entity.End()
-        num_bullets--
+        score += GameData.scoreValues[shipIndex>>1]
     }
-
+    
     sub SetupDemoEnitities(ubyte numShips, ubyte numStatic)
     {
         ubyte k

@@ -53,4 +53,18 @@ GameData
                                     16,  0,
                                      0, 16,
                                     16, 16 ]
+
+    ubyte[9] scoreValues = [
+        10, ; boss green
+        40, ; boss blue
+        16, ; butterfly
+        8,  ; bee
+        10, ; scorpion
+        20, ; green ship
+        30, ; galaxian
+        40, ; dragonfly
+        50  ; enterprise
+    ]
+
+
 }

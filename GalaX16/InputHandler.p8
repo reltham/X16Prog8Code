@@ -92,7 +92,6 @@ InputHandler
         }
         if (newfire_a != oldfire_a and newfire_a == true)
         {
-            Sounds.PlaySFX(3)
             fire_bullet = true
         }
         else

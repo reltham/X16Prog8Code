@@ -48,6 +48,55 @@ Entity
     const ubyte entities_bank = 2
     const uword entities = $a000
 
+    ubyte num_bullets = 0
+    uword[12] bullet_x = 0
+    uword[12] bullet_y = 0
+    ubyte[12] bullet_entity_index = 0
+
+    bool enable_formation_moving = false
+    byte formation_offset_update = 0
+    word curr_formation_x_offset = 0
+    byte curr_formation_y_offset = 0
+    byte formation_direction_x = 1
+    byte formation_direction_y = 1
+    
+    sub CheckBulletHits(uword test_entity_x, uword test_entity_y) -> bool
+    {
+        if (num_bullets > 0)
+        {
+            ubyte bullet
+            for bullet in 0 to num_bullets-1
+            {
+                uword dx = math.diffw(bullet_x[bullet], test_entity_x)
+                if (dx < 12)
+                {
+                    uword dy = math.diffw(bullet_y[bullet], test_entity_y)
+                    if (dy < 16)
+                    {
+                        uword @zp curr_bullet_entity = entities + (bullet_entity_index[bullet] as uword << 5)
+                        curr_bullet_entity[entity_state] = state_none
+                        pokew(curr_bullet_entity + entity_y, -16 as uword)
+                        UpdateSprites(bullet_entity_index[bullet], 1)
+                        num_bullets--
+                        return true
+                    }
+                }
+            }
+        }
+        return false
+    }
+    
+    sub AddPlayerBullet(ubyte num_entities)
+    {
+        if (num_bullets < 1)
+        {
+            Sounds.PlaySFX(3)
+            Begin()
+            Add(num_entities + num_bullets, InputHandler.player_offset, 350, GameData.sprite_indices[GameData.player_bullet], state_player_bullet, 0)
+            End()
+        }
+    }
+
     sub Begin()
     {
         cx16.rambank(entities_bank)
@@ -88,6 +137,15 @@ Entity
         for i in 1 to 10
         {
             curr_entity[entity_state_next_state_data + i] = -1
+        }
+
+        if (state == state_player_bullet and num_bullets < 16)
+        {
+            bullet_entity_index[num_bullets] = entityIndex
+            bullet_x[num_bullets] = xPos + 6
+            bullet_y[num_bullets] = yPos - 4
+            curr_entity[entity_state_data] = num_bullets
+            num_bullets++
         }
 
         ; move sprite off screen
@@ -142,9 +200,28 @@ Entity
         pokew(curr_entity + entity_x, xPosA as uword)
         pokew(curr_entity + entity_y, yPosA as uword)
     }
-    
+
     sub UpdateEntity(ubyte entityIndex) -> bool
     {
+        if (enable_formation_moving == true and entityIndex == 32)
+        {
+            if (formation_offset_update == 0)
+            {
+                if (curr_formation_x_offset > 128) formation_direction_x = -1
+                if (curr_formation_x_offset < -128) formation_direction_x = 1
+                curr_formation_x_offset += formation_direction_x
+    
+                if (curr_formation_y_offset > 32) formation_direction_y = -1
+                if (curr_formation_y_offset < -16) formation_direction_y = 1
+                curr_formation_y_offset += formation_direction_y
+                formation_offset_update = 2
+            }
+            else
+            {
+                formation_offset_update--
+            } 
+        }
+
         uword @zp curr_entity = entities + (entityIndex as uword << 5)
 
         if (curr_entity[entity_state] == state_static)
@@ -161,10 +238,13 @@ Entity
             word curr_bullet_y = peekw(curr_entity + entity_y) as word
             curr_bullet_y -= 8
             pokew(curr_entity + entity_y, curr_bullet_y as uword)
+            bullet_y[curr_entity[entity_state_data]] = curr_bullet_y as uword
             if (curr_bullet_y < -16)
             {
                 curr_entity[entity_state] = state_none
-                main.RemoveBullet()
+                pokew(curr_entity + entity_y, -16 as uword)
+                UpdateSprites(entityIndex, 1)
+                num_bullets--
             }
             return false
         }
@@ -226,7 +306,24 @@ Entity
             }
             else if (curr_entity[entity_state_data] == formation_state_in_slot)
             {
-                curr_entity[entity_state] = state_static
+                if (formation_offset_update == 2)
+                {        
+                    target_x = peekw(curr_entity + entity_state_data + 2) as word 
+                    target_y = peekw(curr_entity + entity_state_data + 4) as word
+                    curr_x = target_x + curr_formation_x_offset
+                    curr_y = target_y + curr_formation_y_offset
+                    pokew(curr_entity + entity_x, curr_x as uword)
+                    pokew(curr_entity + entity_y, curr_y as uword)
+                }
+            }
+
+            uword test_x = peekw(curr_entity + entity_x) + 8
+            uword test_y = peekw(curr_entity + entity_y)
+            if (CheckBulletHits(test_x, test_y))
+            {
+                pokew(curr_entity + entity_y, -17 as uword)
+                curr_entity[entity_state] = state_none
+                main.ScoreHit(curr_entity[entity_ship_index])
             }
             return false
         }
@@ -344,6 +441,15 @@ Entity
             if (curr_entity[entity_state_path_repeat] == 0)
             {
                 curr_entity[entity_state_path_offset]++
+            }
+
+            test_x = peekw(curr_entity + entity_x) + 8
+            test_y = peekw(curr_entity + entity_y)
+            if (CheckBulletHits(test_x, test_y))
+            {
+                pokew(curr_entity + entity_y, -17 as uword)
+                curr_entity[entity_state] = state_none
+                main.ScoreHit(curr_entity[entity_ship_index])
             }
         }
         return false

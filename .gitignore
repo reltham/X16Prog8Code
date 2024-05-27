@@ -8,3 +8,6 @@ Tests/.idea/*
 *.img
 GalaX16/now
 GalaX16/wait
+GalaX16/GALAX16.list
+GalaX16/zsmkit-0830-ns.bin
+GalaX16/zsmkit-0830-s.bin
