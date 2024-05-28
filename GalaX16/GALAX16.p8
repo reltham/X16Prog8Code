@@ -126,6 +126,8 @@ zsmkit_lib:
     {
         Sounds.PlaySFX(4)
         Entity.ResetFormationMotion()
+        Entity.random_chance -= 10
+        if (Entity.random_chance < 10) Entity.random_chance = 10
         Sequencer.InitSequencer(sequencer_entities_start)
         Sequencer.StartLevel(0)
     }

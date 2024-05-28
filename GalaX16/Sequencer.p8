@@ -64,37 +64,37 @@ Sequencer
     ]
 
     ubyte[] sequence0 = [
-        0,   6, 4,
+        0,   6, 6,
         1,   0, 0,  9, 0,  6, 0,  Entity.state_formation, 0, 1,
         2
     ]
 
     ubyte[] sequence1 = [
-        0,    6, 4,
+        0,    6, 6,
         1,   16, 0,  9, 0,  6, 0,  Entity.state_formation, 6, 1,
         2
     ]
 
     ubyte[] sequence2 = [
-        0,   8, 4,
+        0,   8, 6,
         1,  12, 0,  15, 0,  7, 0,  Entity.state_formation, 12, 1,
         2
     ]
 
     ubyte[] sequence3 = [
-        0,   8, 4,
+        0,   8, 6,
         1,  14, 0,  15, 0,  7, 0,  Entity.state_formation, 20, 1,
         2
     ]
 
     ubyte[] sequence4 = [
-        0,   10, 4,
+        0,   10, 6,
         1,    4, 0,  9, 0,  6, 0,  Entity.state_formation, 28, 1,
         2
     ]
 
     ubyte[] sequence5 = [
-        0,   10, 4,
+        0,   10, 6,
         1,    6, 0, 15, 0,  7, 0,  Entity.state_formation, 38, 1,
         2
     ]
@@ -136,12 +136,12 @@ Sequencer
     const ubyte level_set_delay = 1
 
     ubyte[] level_set0 = [
-        0, 120,
-        1, 120,
-        2, 120,
-        3, 120,
-        4, 120,
-        5, 120,
+        0, 140,
+        1, 140,
+        2, 140,
+        3, 140,
+        4, 140,
+        5, 160,
         255, 255
     ]
     

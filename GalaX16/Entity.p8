@@ -67,6 +67,9 @@ Entity
     ubyte enemy_diving_index = 0
     ubyte enemy_diving_formation_slot = 0
     
+    ; this changes each time you clear a level to make it more likely an enemy will dive 
+    ubyte random_chance = 250
+
     sub ResetFormationMotion()
     {
         enable_formation_moving = false
@@ -364,22 +367,16 @@ Entity
                     pokew(curr_entity + entity_x, curr_x as uword)
                     pokew(curr_entity + entity_y, curr_y as uword)
                     
-                    if (enemy_diving == false)
+                    ubyte random_value = math.rnd()
+                    if (enemy_diving == false and random_value > random_chance)
                     {
-                        ubyte random_value = math.rnd()
-                        if (random_value < 32)
+                        random_value = math.rnd()
+                        if (random_value < 16)
                         {
                             ubyte saved_formation_slot = curr_entity[entity_state_data + 1]
 
                             curr_entity[entity_state] = state_onpath
-                            if (random_value < 16)
-                            {
-                                curr_entity[entity_state_data] = 2
-                            }
-                            else
-                            {
-                                curr_entity[entity_state_data] = 4
-                            }
+                            curr_entity[entity_state_data] = random_value >> 2
                             curr_entity[entity_state_data + 1] = 0
                             curr_entity[entity_state_data + 2] = 0
                             for i in 3 to 23
