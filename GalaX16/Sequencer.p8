@@ -237,7 +237,6 @@ Sequencer
         uword yPos = positions[entity_data[sequence_pos_y]] as uword
 
         Entity.Add(sequencer_entity_index, xPos, yPos, entity_data[sequence_entity_id], Entity.state_onpath, entity_data[sequence_path_index])
-        Entity.SetNextState(sequencer_entity_index, entity_data[sequence_next_state], Entity.formation_state_init)
         if (entity_data[sequence_next_state] == Entity.state_formation)
         {
             if (sequence_curr_repeat == 0)
@@ -248,7 +247,12 @@ Sequencer
             {
                 sequence_formation_slots[sequence_curr_entity_index] = sequence_formation_slots[sequence_curr_entity_index - 1] + entity_data[sequence_formation_inc]
             }
+            Entity.SetNextState(sequencer_entity_index, entity_data[sequence_next_state], Entity.formation_state_init, sequence_formation_slots[sequence_curr_entity_index])
             SetEntityFormationPosition(sequencer_entity_index, sequence_formation_slots[sequence_curr_entity_index], true)
+        }
+        else
+        {
+            Entity.SetNextState(sequencer_entity_index, entity_data[sequence_next_state], entity_data[sequence_next_state_data], entity_data[sequence_next_state_data2])
         }
         sequencer_entity_index++;
     }

@@ -33,6 +33,8 @@ Entity
     const ubyte state_formation = 4
     const ubyte state_player_bullet = 5
     const ubyte state_enemy_bullet = 6
+    const ubyte state_start_explosion = 7
+    const ubyte state_explosion = 8
 
     const ubyte formation_state_init = 1
     const ubyte formation_state_fly_to = 2
@@ -48,6 +50,7 @@ Entity
     const ubyte entities_bank = 2
     const uword entities = $a000
 
+    ubyte num_active_enemies = 0
     ubyte num_bullets = 0
     uword[12] bullet_x = 0
     uword[12] bullet_y = 0
@@ -59,6 +62,20 @@ Entity
     byte curr_formation_y_offset = 0
     byte formation_direction_x = 1
     byte formation_direction_y = 1
+    
+    bool enemy_diving = false
+    ubyte enemy_diving_index = 0
+    ubyte enemy_diving_formation_slot = 0
+    
+    sub ResetFormationMotion()
+    {
+        enable_formation_moving = false
+        formation_offset_update = 0
+        curr_formation_x_offset = 0
+        curr_formation_y_offset = 0
+        formation_direction_x = 1
+        formation_direction_y = 1
+    }
     
     sub CheckBulletHits(uword test_entity_x, uword test_entity_y) -> bool
     {
@@ -116,6 +133,10 @@ Entity
         {
             curr_entity[entity_sprite_index] = SpritePathTables.GetSpriteOffset(shipIndex)
             curr_entity[entity_ship_index] = shipIndex
+            if (state != state_player)
+            {
+                num_active_enemies++
+            }
         }
         else
         {
@@ -128,7 +149,7 @@ Entity
         curr_entity[entity_state_data + 1] = 0
         curr_entity[entity_state_data + 2] = 0
         ubyte i
-        for i in 3 to 19
+        for i in 3 to 11
         {
             curr_entity[entity_state_data + i] = -1
         }
@@ -142,25 +163,25 @@ Entity
         if (state == state_player_bullet and num_bullets < 16)
         {
             bullet_entity_index[num_bullets] = entityIndex
+            ; these are offset because the bullet image is in the middle of the sprite image
             bullet_x[num_bullets] = xPos + 6
             bullet_y[num_bullets] = yPos - 4
             curr_entity[entity_state_data] = num_bullets
             num_bullets++
         }
 
-        ; move sprite off screen
-        sprites.position(entityIndex, 0, (-16) as uword)
+        ; move sprite off screen, first update will put it where it goes
+        sprites.position(entityIndex, 0, -17 as uword)
         ; sprites are 16x16, 8bpp, and between layer 0 and layer 1
         sprites.setup(entityIndex, %00000101, %00001000, 0)
     }
 
-    sub SetNextState(ubyte entityIndex, ubyte nextState, ubyte nextStateData)
+    sub SetNextState(ubyte entityIndex, ubyte nextState, ubyte nextStateData, ubyte nextStateData2)
     {
         uword @zp curr_entity = entities + (entityIndex as uword << 5)
         curr_entity[entity_state_next_state] = nextState
         curr_entity[entity_state_next_state_data] = nextStateData
-        curr_entity[entity_state_next_state_data + 1] = 0
-        curr_entity[entity_state_next_state_data + 2] = 0
+        curr_entity[entity_state_next_state_data + 1] = nextStateData2
     }
 
     sub SetPosition(ubyte entityIndex, uword xPos, uword yPos, bool bIntoNextStateData)
@@ -228,12 +249,40 @@ Entity
         {
             return false
         }
-        if (curr_entity[entity_state] == state_player)
+        else if (curr_entity[entity_state] == state_player)
         {
             pokew(curr_entity + entity_x, InputHandler.player_offset)
             return false
         }
-        if (curr_entity[entity_state] == state_player_bullet)
+        else if (curr_entity[entity_state] == state_start_explosion)
+        {
+            Sounds.PlaySFX(2)
+            curr_entity[entity_sprite_index] = GameData.sprite_indices[GameData.enemy_explosion_start]
+            curr_entity[entity_ship_index] = -1
+            curr_entity[entity_state] = state_explosion
+            curr_entity[entity_state_data] = 0
+            return false
+        }
+        else if (curr_entity[entity_state] == state_explosion)
+        {
+            if (curr_entity[entity_state_data] < 2)
+            {
+                curr_entity[entity_sprite_index]++
+                curr_entity[entity_state_data]++
+            }
+            else
+            {
+                pokew(curr_entity + entity_y, -17 as uword)
+                curr_entity[entity_state] = state_none
+                num_active_enemies--
+                if (num_active_enemies == 0)
+                {
+                    main.EnemiesCleared()
+                }
+            }
+            return false
+        }
+        else if (curr_entity[entity_state] == state_player_bullet)
         {
             word curr_bullet_y = peekw(curr_entity + entity_y) as word
             curr_bullet_y -= 8
@@ -248,14 +297,14 @@ Entity
             }
             return false
         }
-        if (curr_entity[entity_state] == state_formation)
+        else if (curr_entity[entity_state] == state_formation)
         {
             if (curr_entity[entity_state_data] == formation_state_init)
             {
                 word curr_x = peekw(curr_entity + entity_x) as word
                 word curr_y = peekw(curr_entity + entity_y) as word
-                word target_x = peekw(curr_entity + entity_state_data + 2) as word 
-                word target_y = peekw(curr_entity + entity_state_data + 4) as word
+                word target_x = peekw(curr_entity + entity_state_data + 2) as word + curr_formation_x_offset
+                word target_y = peekw(curr_entity + entity_state_data + 4) as word + curr_formation_y_offset
                 word diff_x = (target_x - curr_x)
                 word diff_y = (target_y - curr_y)
                 if (diff_y > -130)
@@ -314,6 +363,41 @@ Entity
                     curr_y = target_y + curr_formation_y_offset
                     pokew(curr_entity + entity_x, curr_x as uword)
                     pokew(curr_entity + entity_y, curr_y as uword)
+                    
+                    if (enemy_diving == false)
+                    {
+                        ubyte random_value = math.rnd()
+                        if (random_value < 32)
+                        {
+                            ubyte saved_formation_slot = curr_entity[entity_state_data + 1]
+
+                            curr_entity[entity_state] = state_onpath
+                            if (random_value < 16)
+                            {
+                                curr_entity[entity_state_data] = 2
+                            }
+                            else
+                            {
+                                curr_entity[entity_state_data] = 4
+                            }
+                            curr_entity[entity_state_data + 1] = 0
+                            curr_entity[entity_state_data + 2] = 0
+                            for i in 3 to 23
+                            {
+                                curr_entity[entity_state_data + i] = -1
+                            }
+                            SetNextState(entityIndex, state_formation, formation_state_init, saved_formation_slot)
+                            Sequencer.SetEntityFormationPosition(entityIndex, saved_formation_slot, true)
+                            enemy_diving_index = entityIndex
+                            enemy_diving = true
+                            Sounds.PlaySFX(6)
+                            return true
+                        }
+                    }
+                    else if (entityIndex == enemy_diving_index)
+                    {
+                        enemy_diving = false
+                    }
                 }
             }
 
@@ -321,13 +405,16 @@ Entity
             uword test_y = peekw(curr_entity + entity_y)
             if (CheckBulletHits(test_x, test_y))
             {
-                pokew(curr_entity + entity_y, -17 as uword)
-                curr_entity[entity_state] = state_none
+                curr_entity[entity_state] = state_start_explosion
                 main.ScoreHit(curr_entity[entity_ship_index])
+                if (entityIndex == enemy_diving_index)
+                {
+                    enemy_diving = false
+                }
             }
             return false
         }
-        if (curr_entity[entity_state] == state_onpath)
+        else if (curr_entity[entity_state] == state_onpath)
         {
             byte[7] pathEntry
             ;cx16.VERA_DC_BORDER = 4
@@ -350,7 +437,7 @@ Entity
                         }
                         curr_entity[entity_state_data + 11] = -1
                     }
-                    curr_entity[entity_state_path_offset] = 0
+                    ;curr_entity[entity_state_path_offset] = 0
                 }
                 else
                 {
@@ -447,9 +534,12 @@ Entity
             test_y = peekw(curr_entity + entity_y)
             if (CheckBulletHits(test_x, test_y))
             {
-                pokew(curr_entity + entity_y, -17 as uword)
-                curr_entity[entity_state] = state_none
+                curr_entity[entity_state] = state_start_explosion
                 main.ScoreHit(curr_entity[entity_ship_index])
+                if (entityIndex == enemy_diving_index)
+                {
+                    enemy_diving = false
+                }
             }
         }
         return false

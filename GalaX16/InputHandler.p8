@@ -15,7 +15,7 @@ InputHandler
     bool oldfire_l = false
     bool oldfire_r = false
 
-    uword player_offset = 0
+    uword player_offset = 248
     bool fire_bullet = false
 
     sub Init()
@@ -77,17 +77,17 @@ InputHandler
         if (newleft == true)
         {
             player_offset -= 4
-            if (player_offset < 2)
+            if (player_offset < 4)
             {
-                player_offset = 2
+                player_offset = 4
             }
         }
         if (newright == true)
         {
             player_offset += 4
-            if (player_offset > 494)
+            if (player_offset > 492)
             {
-                player_offset = 494
+                player_offset = 492
             }
         }
         if (newfire_a != oldfire_a and newfire_a == true)

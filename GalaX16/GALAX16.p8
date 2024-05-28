@@ -20,6 +20,7 @@ zsmkit_lib:
     ; this has to be the first statement to make sure it loads at the specified module address $0830
     %asmbinary "zsmkit-0830.bin"
 
+    const ubyte sequencer_entities_start = 32 
     const ubyte game_banks_start = 2
     ubyte num_entities = 0
     uword score = 0
@@ -41,7 +42,6 @@ zsmkit_lib:
         txt.home()
         txt.print("galax16   \n")
 
-        const ubyte sequencer_entities_start = 32 
         ubyte num_sequencer_entities = 0
         Sequencer.InitSequencer(sequencer_entities_start)
         Sequencer.StartLevel(0)
@@ -122,6 +122,14 @@ zsmkit_lib:
         score += GameData.scoreValues[shipIndex>>1]
     }
     
+    sub EnemiesCleared()
+    {
+        Sounds.PlaySFX(4)
+        Entity.ResetFormationMotion()
+        Sequencer.InitSequencer(sequencer_entities_start)
+        Sequencer.StartLevel(0)
+    }
+    
     sub SetupDemoEnitities(ubyte numShips, ubyte numStatic)
     {
         ubyte k
@@ -147,7 +155,7 @@ zsmkit_lib:
         for k in numStatic to (numStatic + numShips) - 1
         {
             Entity.Add(k, 128, 0, ((k >> 2) % 10) << 1, Entity.state_onpath, (k % 2) * 5)
-            Entity.SetNextState(k, Entity.state_onpath, (k % 2) * 5)
+            Entity.SetNextState(k, Entity.state_onpath, (k % 2) * 5, 0)
             repeat numUpdates
             {
                 if (Entity.UpdateEntity(k))

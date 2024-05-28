@@ -14,6 +14,7 @@
 GameData
 {
     const ubyte player_bullet = 13
+    const ubyte enemy_explosion_start = 14
     ubyte[] sprite_indices = [  8,    ; 1
                                 24,   ; 5
                                 40,   ; 10
