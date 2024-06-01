@@ -64,7 +64,7 @@ InputHandler
         }
         if (newselect != oldselect and newselect == true)
         {
-            txt.print("pressed select\n")
+            txt.print("\npressed select\n")
         }
         if (newup != oldup and newup == true)
         {

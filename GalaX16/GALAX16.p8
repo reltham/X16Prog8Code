@@ -24,6 +24,9 @@ zsmkit_lib:
     const ubyte game_banks_start = 2
     ubyte num_entities = 0
     uword score = 0
+    ubyte player_index = 0
+    ubyte player_lives = 3
+    ubyte player_died = 0
     
     sub start()
     {
@@ -38,7 +41,6 @@ zsmkit_lib:
         SpritePathTables.Init(game_banks_start);
         sprites.Init()
 
-        ;txt.cls()
         txt.home()
         txt.print("galax16   \n")
 
@@ -47,18 +49,17 @@ zsmkit_lib:
         Sequencer.StartLevel(0)
         Entity.Begin()
         Entity.Add(num_entities, 2, 366, 18, Entity.state_player, 0)
+        player_index = num_entities
         num_entities++
         Entity.End()
         ubyte rate = 0
         repeat
         {
-            ;cx16.VERA_DC_BORDER = 8
             Entity.Begin()
             Entity.UpdateSprites(0, num_entities + Entity.num_bullets)
             Entity.UpdateSprites(sequencer_entities_start, num_sequencer_entities)
             Entity.End()
 
-            ;cx16.VERA_DC_BORDER = 2
             if (not InputHandler.IsPaused()); and (rate % 8) == 0)
             {
                 Entity.Begin()
@@ -67,7 +68,6 @@ zsmkit_lib:
                 ubyte j
                 for j in 0 to (num_entities + Entity.num_bullets) - 1
                 {
-                    ;cx16.VERA_DC_BORDER = 2 + j % 1
                     if (Entity.UpdateEntity(j))
                     {
                         void Entity.UpdateEntity(j)
@@ -75,7 +75,6 @@ zsmkit_lib:
                 }
                 for j in sequencer_entities_start to sequencer_entities_start + num_sequencer_entities
                 {
-                    ;cx16.VERA_DC_BORDER = 2 + j % 1
                     if (Entity.UpdateEntity(j))
                     {
                         void Entity.UpdateEntity(j)
@@ -83,16 +82,53 @@ zsmkit_lib:
                 }
                 Entity.End()
             }
-            ;cx16.VERA_DC_BORDER = 7
             rate++
 
             InputHandler.DoScan();
-            if (InputHandler.fire_bullet == true)
+
+            txt.home()
+            txt.nl()
+            txt.spc()
+            txt.print_uw(score)
+            txt.print("0")
+            txt.spc()
+            txt.print_ub(player_lives)
+            
+            if (player_lives > 0)
             {
-                Entity.AddPlayerBullet(num_entities)
+                if (InputHandler.fire_bullet == true and player_died == 0)
+                {
+                    Entity.AddPlayerBullet(num_entities)
+                }
+
+                if (player_died > 0)
+                {
+                    player_died--
+                    if (player_died == 1)
+                    {
+                        if (player_lives > 0)
+                        {
+                            player_lives--
+                        }
+                        if (player_lives > 0)
+                        {
+                            Entity.Begin()
+                            Entity.Add(player_index, 2, 366, 18, Entity.state_player, 0)
+                            Entity.End()
+                            Entity.enemy_diving = false
+                        }
+                    }
+                }
+            }
+            else
+            {
+                txt.home()
+                txt.nl()
+                txt.nl()
+                txt.nl()
+                txt.print("game over")
             }
 
-            ;cx16.VERA_DC_BORDER = 5
             zsmkit.zsm_fill_buffers()
 
             if (Sounds.GetBeat())
@@ -105,15 +141,7 @@ zsmkit_lib:
                 Sounds.ClearLoopChanged()
             }
 
-            txt.home()
-            txt.nl()
-            txt.spc()
-            txt.print_uw(score)
-            txt.print("0")
-
-            ;cx16.VERA_DC_BORDER = 0
             sys.waitvsync()
-            ;cx16.VERA_DC_BORDER = 8
         }
     }
     
@@ -122,6 +150,11 @@ zsmkit_lib:
         score += GameData.scoreValues[shipIndex>>1]
     }
     
+    sub PlayerDied()
+    {
+        player_died = 30
+    }
+
     sub EnemiesCleared()
     {
         Sounds.PlaySFX(4)
@@ -130,43 +163,5 @@ zsmkit_lib:
         if (Entity.random_chance < 10) Entity.random_chance = 10
         Sequencer.InitSequencer(sequencer_entities_start)
         Sequencer.StartLevel(0)
-    }
-    
-    sub SetupDemoEnitities(ubyte numShips, ubyte numStatic)
-    {
-        ubyte k
-        Entity.Begin()
-        for k in 0 to numStatic - 1
-        {
-            ubyte sprite_index
-            if (k < len(GameData.sprite_indices))
-            {
-                sprite_index = GameData.sprite_indices[k]
-            }
-            else
-            {
-                sprite_index = SpritePathTables.GetSpriteOffset((k % 10) << 1)
-            }
-            Entity.Add(k, (k as uword * 16), 384, sprite_index, Entity.state_static, 0)
-            if (Entity.UpdateEntity(k))
-            {
-                void Entity.UpdateEntity(k)
-            }
-        } 
-        ubyte numUpdates = 0
-        for k in numStatic to (numStatic + numShips) - 1
-        {
-            Entity.Add(k, 128, 0, ((k >> 2) % 10) << 1, Entity.state_onpath, (k % 2) * 5)
-            Entity.SetNextState(k, Entity.state_onpath, (k % 2) * 5, 0)
-            repeat numUpdates
-            {
-                if (Entity.UpdateEntity(k))
-                {
-                    void Entity.UpdateEntity(k)
-                }
-            }
-            numUpdates += 1
-        }
-        Entity.End()
     }
 }

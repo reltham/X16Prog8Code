@@ -106,6 +106,28 @@ Entity
         return false
     }
     
+    sub CheckEnemyPlayerHit(ubyte playerEntityIndex) -> bool
+    {
+        uword @zp curr_enemy_entity = entities + (enemy_diving_index as uword << 5)
+        uword test_enemy_y = peekw(curr_enemy_entity + entity_y)
+
+        uword @zp curr_player_entity = entities + (playerEntityIndex as uword << 5)
+        uword text_player_y = peekw(curr_player_entity + entity_y)
+
+        uword dy = math.diffw(test_enemy_y, text_player_y)
+        if (dy < 16)
+        {
+            uword test_enemy_x = peekw(curr_enemy_entity + entity_x) + 8
+            uword text_player_x = peekw(curr_player_entity + entity_x) + 8
+            uword dx = math.diffw(test_enemy_x, text_player_x)
+            if (dx <= 8)
+            {
+                return true
+            }
+        }
+        return false
+    }
+    
     sub AddPlayerBullet(ubyte num_entities)
     {
         if (num_bullets < 1)
@@ -255,6 +277,19 @@ Entity
         else if (curr_entity[entity_state] == state_player)
         {
             pokew(curr_entity + entity_x, InputHandler.player_offset)
+            if (enemy_diving == true)
+            {
+                if (CheckEnemyPlayerHit(entityIndex) == true)
+                {
+                    curr_entity[entity_state] = state_start_explosion
+                    curr_entity[entity_state_data + 1] = 0
+                    uword @zp diving_enemy_entity = entities + (enemy_diving_index as uword << 5)
+                    diving_enemy_entity[entity_state] = state_start_explosion
+                    diving_enemy_entity[entity_state_data + 1] = 1
+                    main.PlayerDied()
+                    return true
+                }
+            }
             return false
         }
         else if (curr_entity[entity_state] == state_start_explosion)
@@ -277,10 +312,13 @@ Entity
             {
                 pokew(curr_entity + entity_y, -17 as uword)
                 curr_entity[entity_state] = state_none
-                num_active_enemies--
-                if (num_active_enemies == 0)
+                if (curr_entity[entity_state_data + 1] > 0)
                 {
-                    main.EnemiesCleared()
+                    num_active_enemies--
+                    if (num_active_enemies == 0)
+                    {
+                        main.EnemiesCleared()
+                    }
                 }
             }
             return false
@@ -403,6 +441,7 @@ Entity
             if (CheckBulletHits(test_x, test_y))
             {
                 curr_entity[entity_state] = state_start_explosion
+                curr_entity[entity_state_data + 1] = 1
                 main.ScoreHit(curr_entity[entity_ship_index])
                 if (entityIndex == enemy_diving_index)
                 {
@@ -414,9 +453,7 @@ Entity
         else if (curr_entity[entity_state] == state_onpath)
         {
             byte[7] pathEntry
-            ;cx16.VERA_DC_BORDER = 4
             SpritePathTables.GetPathEntry(curr_entity[entity_state_path], curr_entity[entity_state_path_offset], curr_entity[entity_ship_index], &pathEntry)
-            ;cx16.VERA_DC_BORDER = 2
 
             if (pathEntry[0] == 0)
             {
@@ -434,37 +471,18 @@ Entity
                         }
                         curr_entity[entity_state_data + 11] = -1
                     }
-                    ;curr_entity[entity_state_path_offset] = 0
                 }
                 else
                 {
                     ; return from gosub
                     if (curr_entity[entity_state_path_return_index] != -1)
                     {
-                        /*
-                        ubyte currPath = curr_entity[entity_state_path]
-                        ubyte currPathOffset = curr_entity[entity_state_path_offset]
-                        ubyte returnPath = curr_entity[entity_state_path_return + (curr_entity[entity_state_path_return_index] * 2)]
-                        ubyte returnPathOffset = curr_entity[entity_state_path_return + (curr_entity[entity_state_path_return_index] * 2) + 1]
-                        End()
-                        txt.print(iso:"R: ")
-                        txt.print_ub(currPath)
-                        txt.print(iso:", ")
-                        txt.print_ub(currPathOffset)
-                        txt.print(iso:" -> ")
-                        txt.print_ub(returnPath)
-                        txt.print(iso:", ")
-                        txt.print_ub(returnPathOffset)
-                        txt.nl()
-                        Begin()
-                        */                    
                         ubyte stackOffset = entity_state_path_return + (curr_entity[entity_state_path_return_index] * 2)
                         curr_entity[entity_state_path] = curr_entity[stackOffset]
                         curr_entity[stackOffset] = -1
                         curr_entity[entity_state_path_offset] = curr_entity[stackOffset + 1]
                         curr_entity[stackOffset + 1] = -1
                         curr_entity[entity_state_path_return_index]--
-                        ;curr_entity[entity_state_path_repeat] = 0
                     }
                 }
                 return true
@@ -481,26 +499,6 @@ Entity
                     curr_entity[entity_state_path_return_index]++
                 }
                 ubyte newPath = pathEntry[1] as ubyte
-                /*
-                if (pathEntry[1] == 1)
-                {
-                    ; pick one randomly from pathEntry[2], pathEntry[3], pathEntry[4]
-                }
-                */
-                /*
-                ubyte currPathx = curr_entity[entity_state_path]
-                ubyte currPathOffsetx = curr_entity[entity_state_path_offset]
-                End()
-                txt.print(iso:"G: ")
-                txt.print_ub(currPathx)
-                txt.print(iso:", ")
-                txt.print_ub(currPathOffsetx)
-                txt.print(iso:" -> ")
-                txt.print_ub(newPath)
-                txt.print(iso:", 0")
-                txt.nl()
-                Begin()                    
-                */
 
                 ; store the return info
                 ubyte stackOffsetx = entity_state_path_return + (curr_entity[entity_state_path_return_index] * 2)
@@ -532,6 +530,7 @@ Entity
             if (CheckBulletHits(test_x, test_y))
             {
                 curr_entity[entity_state] = state_start_explosion
+                curr_entity[entity_state_data + 1] = 1
                 main.ScoreHit(curr_entity[entity_ship_index])
                 if (entityIndex == enemy_diving_index)
                 {
