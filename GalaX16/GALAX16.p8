@@ -48,15 +48,18 @@ zsmkit_lib:
         Sequencer.InitSequencer(sequencer_entities_start)
         Sequencer.StartLevel(0)
         Entity.Begin()
+        Entity.InitEntitySlots()
         Entity.Add(num_entities, 2, 366, 18, Entity.state_player, 0)
         player_index = num_entities
         num_entities++
+        Entity.SetBulletEntitiesStart(num_entities)
         Entity.End()
+        bool spawn_player = false
         ubyte rate = 0
         repeat
         {
             Entity.Begin()
-            Entity.UpdateSprites(0, num_entities + Entity.num_bullets)
+            Entity.UpdateSprites(0, sequencer_entities_start) ;num_entities + Entity.num_player_bullets)
             Entity.UpdateSprites(sequencer_entities_start, num_sequencer_entities)
             Entity.End()
 
@@ -66,7 +69,14 @@ zsmkit_lib:
 
                 num_sequencer_entities = Sequencer.Update() - sequencer_entities_start
                 ubyte j
-                for j in 0 to (num_entities + Entity.num_bullets) - 1
+                for j in 0 to (num_entities + Entity.num_player_bullets) - 1
+                {
+                    if (Entity.UpdateEntity(j))
+                    {
+                        void Entity.UpdateEntity(j)
+                    }
+                }
+                for j in num_entities + Entity.start_enemy_bullets to (num_entities + Entity.start_enemy_bullets + Entity.num_enemy_bullets) - 1
                 {
                     if (Entity.UpdateEntity(j))
                     {
@@ -96,9 +106,9 @@ zsmkit_lib:
             
             if (player_lives > 0)
             {
-                if (InputHandler.fire_bullet == true and player_died == 0)
+                if (InputHandler.fire_bullet == true and player_died == 0 and spawn_player == false)
                 {
-                    Entity.AddPlayerBullet(num_entities)
+                    Entity.AddPlayerBullet()
                 }
 
                 if (player_died > 0)
@@ -112,12 +122,18 @@ zsmkit_lib:
                         }
                         if (player_lives > 0)
                         {
-                            Entity.Begin()
-                            Entity.Add(player_index, 2, 366, 18, Entity.state_player, 0)
-                            Entity.End()
-                            Entity.enemy_diving = false
+                            spawn_player = true
                         }
                     }
+                }
+
+                if (spawn_player == true and Entity.enemy_diving == false)
+                {
+                    Entity.Begin()
+                    Entity.Add(player_index, 2, 366, 18, Entity.state_player, 0)
+                    Entity.End()
+                    Entity.enable_enemy_diving = true
+                    spawn_player = false
                 }
             }
             else

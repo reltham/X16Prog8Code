@@ -264,6 +264,7 @@ Sequencer
         {
             curr_level = 0
             Entity.enable_formation_moving = true
+            Entity.enable_enemy_diving = true
         }
         else
         {
