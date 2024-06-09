@@ -1,5 +1,7 @@
 Entity
 {
+    const uword entities_addr = $A000
+
     ; entities are 32 bytes each
     const ubyte entity_x = 0
     const ubyte entity_y = 2
@@ -46,10 +48,6 @@ Entity
                                             48, 49,
                                             80, 81 ]
 
-
-    const ubyte entities_bank = 2
-    const uword entities = $a000
-
     ubyte bullet_entities_start = 0
     ubyte num_active_enemies = 0
     ubyte num_player_bullets = 0
@@ -74,7 +72,7 @@ Entity
     
     ; this changes each time you clear a level to make it more likely an enemy will dive 
     ubyte random_chance = 250
-    
+
     sub SetBulletEntitiesStart(ubyte newStart)
     {
         bullet_entities_start = newStart
@@ -95,8 +93,8 @@ Entity
     {
         if (bullet == 0 and num_player_bullets > 1)
         {
-            uword @zp this_bullet_entity = entities + (bullet_entity_index[bullet] as uword << 5)
-            uword @zp next_bullet_entity = entities + (bullet_entity_index[bullet+1] as uword << 5)
+            uword @zp this_bullet_entity = entities_addr + (bullet_entity_index[bullet] as uword << 5)
+            uword @zp next_bullet_entity = entities_addr + (bullet_entity_index[bullet+1] as uword << 5)
             ubyte i
             for i in 0 to 31
             {
@@ -111,7 +109,7 @@ Entity
         }
         else
         {
-            uword @zp curr_bullet_entity = entities + (bullet_entity_index[bullet] as uword << 5)
+            uword @zp curr_bullet_entity = entities_addr + (bullet_entity_index[bullet] as uword << 5)
             curr_bullet_entity[entity_state] = state_none
             pokew(curr_bullet_entity + entity_y, -17 as uword)
             UpdateSprites(bullet_entity_index[bullet], 1)
@@ -122,8 +120,8 @@ Entity
     {
         if (bullet == start_enemy_bullets and num_enemy_bullets > 1)
         {
-            uword @zp this_bullet_entity = entities + (bullet_entity_index[bullet] as uword << 5)
-            uword @zp next_bullet_entity = entities + (bullet_entity_index[bullet+1] as uword << 5)
+            uword @zp this_bullet_entity = entities_addr + (bullet_entity_index[bullet] as uword << 5)
+            uword @zp next_bullet_entity = entities_addr + (bullet_entity_index[bullet+1] as uword << 5)
             ubyte i
             for i in 0 to 31
             {
@@ -138,7 +136,7 @@ Entity
         }
         else
         {
-            uword @zp curr_bullet_entity = entities + (bullet_entity_index[bullet] as uword << 5)
+            uword @zp curr_bullet_entity = entities_addr + (bullet_entity_index[bullet] as uword << 5)
             curr_bullet_entity[entity_state] = state_none
             pokew(curr_bullet_entity + entity_y, -17 as uword)
             UpdateSprites(bullet_entity_index[bullet], 1)
@@ -170,10 +168,10 @@ Entity
     
     sub CheckEnemyPlayerHit(ubyte playerEntityIndex) -> bool
     {
-        uword @zp curr_enemy_entity = entities + (enemy_diving_index as uword << 5)
+        uword @zp curr_enemy_entity = entities_addr + (enemy_diving_index as uword << 5)
         uword test_enemy_y = peekw(curr_enemy_entity + entity_y)
 
-        uword @zp curr_player_entity = entities + (playerEntityIndex as uword << 5)
+        uword @zp curr_player_entity = entities_addr + (playerEntityIndex as uword << 5)
         uword text_player_y = peekw(curr_player_entity + entity_y)
 
         uword dy = math.diffw(test_enemy_y, text_player_y)
@@ -218,9 +216,9 @@ Entity
         if (num_player_bullets < 2)
         {
             Sounds.PlaySFX(3)
-            Begin()
+            GameData.Begin()
             Add(bullet_entities_start + num_player_bullets, InputHandler.player_offset, 350, GameData.sprite_indices[GameData.player_bullet], state_player_bullet, 0)
-            End()
+            GameData.End()
         }
     }
 
@@ -229,25 +227,15 @@ Entity
         if (num_enemy_bullets < 2)
         {
             Sounds.PlaySFX(5)
-            Begin()
+            GameData.Begin()
             Add(bullet_entities_start + start_enemy_bullets + num_enemy_bullets, enemy_x - 4, enemy_y + 8, GameData.sprite_indices[GameData.enemy_bullet], state_enemy_bullet, dx)
-            End()
+            GameData.End()
         }
-    }
-
-    sub Begin()
-    {
-        cx16.rambank(entities_bank)
-    }
-
-    sub End()
-    {
-        cx16.rambank(0)
     }
 
     sub Add(ubyte entityIndex, uword xPos, uword yPos, ubyte shipIndex, ubyte state, ubyte stateData)
     {
-        uword @zp curr_entity = entities + (entityIndex as uword << 5)
+        uword @zp curr_entity = entities_addr + (entityIndex as uword << 5)
         pokew(curr_entity + entity_x, xPos as uword)
         pokew(curr_entity + entity_y, yPos as uword)
         if (state == state_onpath or state == state_formation or state == state_player)
@@ -310,7 +298,7 @@ Entity
 
     sub SetNextState(ubyte entityIndex, ubyte nextState, ubyte nextStateData, ubyte nextStateData2)
     {
-        uword @zp curr_entity = entities + (entityIndex as uword << 5)
+        uword @zp curr_entity = entities_addr + (entityIndex as uword << 5)
         curr_entity[entity_state_next_state] = nextState
         curr_entity[entity_state_next_state_data] = nextStateData
         curr_entity[entity_state_next_state_data + 1] = nextStateData2
@@ -318,7 +306,7 @@ Entity
 
     sub SetPosition(ubyte entityIndex, uword xPos, uword yPos, bool bIntoNextStateData)
     {
-        uword @zp curr_entity = entities + (entityIndex as uword << 5)
+        uword @zp curr_entity = entities_addr + (entityIndex as uword << 5)
         if (bIntoNextStateData == true)
         {
             pokew(curr_entity + entity_state_next_state_data + 2, xPos)
@@ -333,7 +321,7 @@ Entity
 
     sub UpdatePosition(ubyte entityIndex, word xPos, word yPos)
     {
-        uword @zp curr_entity = entities + (entityIndex as uword << 5)
+        uword @zp curr_entity = entities_addr + (entityIndex as uword << 5)
         
         word xPosA = peekw(curr_entity + entity_x) + xPos
         word yPosA = peekw(curr_entity + entity_y) + yPos
@@ -375,7 +363,7 @@ Entity
             } 
         }
 
-        uword @zp curr_entity = entities + (entityIndex as uword << 5)
+        uword @zp curr_entity = entities_addr + (entityIndex as uword << 5)
 
         if (curr_entity[entity_state] == state_static)
         {
@@ -389,7 +377,7 @@ Entity
             {
                 if (CheckEnemyPlayerHit(entityIndex) == true)
                 {
-                    uword @zp diving_enemy_entity = entities + (enemy_diving_index as uword << 5)
+                    uword @zp diving_enemy_entity = entities_addr + (enemy_diving_index as uword << 5)
                     diving_enemy_entity[entity_state] = state_start_explosion
                     diving_enemy_entity[entity_state_data + 1] = 1
                     enemy_diving = false
@@ -697,7 +685,7 @@ Entity
 
     sub InitEntitySlots()
     {
-        uword @zp curr_entity = entities
+        uword @zp curr_entity = entities_addr
         repeat 128
         {
             pokew(curr_entity + entity_x, 0)
@@ -711,12 +699,12 @@ Entity
 
     sub UpdateSprites(ubyte startIndex, ubyte numSprites)
     {
-        uword @zp curr_entity = entities + (startIndex as uword << 5)
+        uword @zp curr_entity = entities_addr + (startIndex as uword << 5)
 
         cx16.r0 = $fc00 + (startIndex as uword * 8)
         repeat numSprites
         {
-            cx16.r1 = ($400 + (curr_entity[entity_sprite_index] as uword * 4)) ; calc sprite vera address, but already shifted down 5 (since we only need upper 11 bits) 
+            cx16.r1 = (sprites.sprite_data_vera_addr_shifted + (curr_entity[entity_sprite_index] as uword * 4)) ; calc sprite vera address, but already shifted down 5 (since we only need upper 11 bits) 
             cx16.r2 = peekw(curr_entity + entity_x)
             cx16.r3 = peekw(curr_entity + entity_y)
             sprites.updateEx(curr_entity[entity_sprite_setup])

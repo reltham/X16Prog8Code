@@ -21,7 +21,7 @@ zsmkit_lib:
     %asmbinary "zsmkit-0830.bin"
 
     const ubyte sequencer_entities_start = 32 
-    const ubyte game_banks_start = 2
+    const ubyte game_data_ram_bank = 2
     ubyte num_entities = 0
     uword score = 0
     ubyte player_index = 0
@@ -38,8 +38,10 @@ zsmkit_lib:
         Sounds.SetupZSMKit()
 
         InputHandler.Init()
-        SpritePathTables.Init(game_banks_start);
+        GameData.Begin()
+        SpritePathTables.Init()
         sprites.Init()
+        GameData.End()
 
         txt.home()
         txt.print("galax16   \n")
@@ -47,25 +49,25 @@ zsmkit_lib:
         ubyte num_sequencer_entities = 0
         Sequencer.InitSequencer(sequencer_entities_start)
         Sequencer.StartLevel(0)
-        Entity.Begin()
+        GameData.Begin()
         Entity.InitEntitySlots()
         Entity.Add(num_entities, 2, 366, 18, Entity.state_player, 0)
         player_index = num_entities
         num_entities++
         Entity.SetBulletEntitiesStart(num_entities)
-        Entity.End()
+        GameData.End()
         bool spawn_player = false
         ubyte rate = 0
         repeat
         {
-            Entity.Begin()
+            GameData.Begin()
             Entity.UpdateSprites(0, sequencer_entities_start) ;num_entities + Entity.num_player_bullets)
             Entity.UpdateSprites(sequencer_entities_start, num_sequencer_entities)
-            Entity.End()
+            GameData.End()
 
             if (not InputHandler.IsPaused()); and (rate % 8) == 0)
             {
-                Entity.Begin()
+                GameData.Begin()
 
                 num_sequencer_entities = Sequencer.Update() - sequencer_entities_start
                 ubyte j
@@ -90,7 +92,7 @@ zsmkit_lib:
                         void Entity.UpdateEntity(j)
                     }
                 }
-                Entity.End()
+                GameData.End()
             }
             rate++
 
@@ -129,9 +131,9 @@ zsmkit_lib:
 
                 if (spawn_player == true and Entity.enemy_diving == false)
                 {
-                    Entity.Begin()
+                    GameData.Begin()
                     Entity.Add(player_index, 2, 366, 18, Entity.state_player, 0)
-                    Entity.End()
+                    GameData.End()
                     Entity.enable_enemy_diving = true
                     spawn_player = false
                 }
@@ -176,7 +178,10 @@ zsmkit_lib:
         Sounds.PlaySFX(4)
         Entity.ResetFormationMotion()
         Entity.random_chance -= 10
-        if (Entity.random_chance < 10) Entity.random_chance = 10
+        if (Entity.random_chance < 10)
+        {
+            Entity.random_chance = 10
+        }
         Sequencer.InitSequencer(sequencer_entities_start)
         Sequencer.StartLevel(0)
     }

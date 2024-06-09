@@ -7,7 +7,7 @@ Sounds
     bool loopchanged = false
     bool beat = false
 
-    const ubyte num_sfx = 7
+    const ubyte num_sfx = 11
     ubyte[num_sfx] sfx_banks
     uword[num_sfx] sfx_addr
     str[num_sfx] sfx_names = [
@@ -17,16 +17,24 @@ Sounds
         iso:"PEW_16.ZSM",
         iso:"WIBBLE_16.ZSM",
         iso:"SWEEPDOWNL_15.ZSM",
-        iso:"SWEEPUP_15.ZSM"    
+        iso:"SWEEPUP_15.ZSM",
+        iso:"SFX10.ZSM",
+        iso:"SFX11.ZSM",
+        iso:"SFX12.ZSM",
+        iso:"SFX13.ZSM"
     ]
     ubyte[num_sfx] sfx_priorities = [
         1,
         2,
         3,
-        1,
-        1,
-        3,
-        3
+        4,
+        5,
+        6,
+        7,
+        4,
+        5,
+        6,
+        7
     ]
 
     sub GetLoopChanged() -> bool
@@ -63,8 +71,8 @@ Sounds
         ; setup zsmkit
         zsmkit.zsm_init_engine(zsmkit_bank)
         cx16.rambank(zsmdata_bank_start)
-        void diskio.load_raw(iso:"TFVRISESYNC.ZSM", $A000)
-        ;void diskio.load_raw(iso:"SHOVEL_S.ZSM", $A000)
+        ;void diskio.load_raw(iso:"TFVRISESYNC.ZSM", $A000)
+        void diskio.load_raw(iso:"SHOVEL_S.ZSM", $A000)
         ubyte zcmbank = cx16.getrambank() + 1
         cx16.rambank(zsmdata_bank_start)
         zsmkit.zsm_setmem(0, $A000)

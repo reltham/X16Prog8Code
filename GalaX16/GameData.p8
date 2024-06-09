@@ -1,21 +1,19 @@
 ; game data for GalaX16
 
-; full formation = 40 enemies:
-; 4 boss galalas centered at top
-; 16 red butterflies in 2 rows of 8
-; 20 blue bees in 2 rows of 10
-;
-; other sprites:
-; player bullets: 8
-; enemy bullets: 12
-; player ships: 1-9
-; level flags: 1-11
-
 GameData
 {
-    const ubyte player_bullet = 13
+    ; game ram bank layout
+    ;
+    ; $A000 - $AFFF -> 4K - 128 entities, 32 bytes each
+    ; $B000 - $B3FF -> 1K - 128 sprites, 8 bytes each
+    ; $B400 - $BFFF -> 3K for paths
+    ;
+    const ubyte ram_bank = 2
+
     const ubyte enemy_bullet = 12
+    const ubyte player_bullet = 13
     const ubyte enemy_explosion_start = 14
+    
     ubyte[] sprite_indices = [  8,    ; 1
                                 24,   ; 5
                                 40,   ; 10
@@ -67,6 +65,15 @@ GameData
         40, ; dragonfly
         50  ; enterprise
     ]
+    
+    sub Begin()
+    {
+        cx16.rambank(ram_bank)
+    }
 
+    sub End()
+    {
+        cx16.rambank(0)
+    }
 
 }

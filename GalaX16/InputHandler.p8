@@ -100,23 +100,23 @@ InputHandler
         }
         if (newfire_b != oldfire_b and newfire_b == true)
         {
-            Sounds.PlaySFX(4)
+            Sounds.PlaySFX(9)
         }
         if (newfire_l != oldfire_l and newfire_l == true)
         {
-            Sounds.PlaySFX(5)
+            Sounds.PlaySFX(10)
         }
         if (newfire_r != oldfire_r and newfire_r == true)
         {
-            Sounds.PlaySFX(6)
+            Sounds.PlaySFX(0)
         }
         if (newfire_x != oldfire_x and newfire_x == true)
         {
-            Sounds.PlaySFX(0)
+            Sounds.PlaySFX(7)
         }
         if (newfire_y != oldfire_y and newfire_y == true)
         {
-            Sounds.PlaySFX(1)
+            Sounds.PlaySFX(8)
         }
         oldup = newup
         olddown = newdown

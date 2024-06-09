@@ -2,14 +2,13 @@
 
 SpritePathTables
 {
-    ; PATHS.BIN is loaded at $A800 in the game ram bank
-    &uword num_paths = $B000
-    const uword paths = $B002
+    ; PATHS.BIN is loaded at $B000 in the game ram bank
+    &uword num_paths = $B400
+    const uword paths = $B402
 
-    sub Init(ubyte ramBank)
+    sub Init()
     {
-        cx16.rambank(ramBank)
-        void diskio.load_raw(iso:"PATHS.BIN", $B000)
+        void diskio.load_raw(iso:"PATHS.BIN", $B400)
     }
 
     ; index, VH flips (0 - no flips, 1 - h flip, 2 - v flip, 3 both flips)

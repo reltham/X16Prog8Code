@@ -1,16 +1,26 @@
 
 sprites
 {
+    const uword sprite_data_addr = $B000
+
     ; sprites are loaded into VERA memory at $8000
     ; sprites are 16x16x4bpp, so 128 bytes per sprite
-    const uword sprite_data_addr = $8000
+    const uword sprite_data_vera_addr = $8000
+    const uword sprite_data_vera_addr_shifted = sprite_data_vera_addr >> 5
     const uword sprite_size = 128
+    
+    const ubyte sprite_address_low = 0
+    const ubyte sprite_address_high_mode = 1
+    const ubyte sprite_position_x = 2
+    const ubyte sprite_position_y = 4
+    const ubyte sprite_collision_mask_zdepth_VHFlips = 6
+    const ubyte sprite_width_height_palette_offset = 7
 
     sub Init()
     {
         ; load our sprites into VERA, the palette is loaded right into the palette registers at $fa00
         void diskio.vload_raw(iso:"GALSPRITES.PAL", 1, $fa00)
-        void diskio.vload_raw(iso:"GALSPRITES.BIN", 0, sprite_data_addr)
+        void diskio.vload_raw(iso:"GALSPRITES.BIN", 0, sprite_data_vera_addr)
 
         ; enable sprites
         cx16.VERA_DC_VIDEO = cx16.VERA_DC_VIDEO | %01000000
