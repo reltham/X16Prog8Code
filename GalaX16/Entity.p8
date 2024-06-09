@@ -215,7 +215,7 @@ Entity
     {
         if (num_player_bullets < 2)
         {
-            Sounds.PlaySFX(3)
+            Sounds.PlaySFX(4)
             GameData.Begin()
             Add(bullet_entities_start + num_player_bullets, InputHandler.player_offset, 350, GameData.sprite_indices[GameData.player_bullet], state_player_bullet, 0)
             GameData.End()
@@ -226,7 +226,7 @@ Entity
     {
         if (num_enemy_bullets < 2)
         {
-            Sounds.PlaySFX(5)
+            Sounds.PlaySFX(1)
             GameData.Begin()
             Add(bullet_entities_start + start_enemy_bullets + num_enemy_bullets, enemy_x - 4, enemy_y + 8, GameData.sprite_indices[GameData.enemy_bullet], state_enemy_bullet, dx)
             GameData.End()
@@ -554,7 +554,7 @@ Entity
                             enemy_diving_index = entityIndex
                             enemy_diving = true
                             enemy_bullet_fired = 30
-                            Sounds.PlaySFX(6)
+                            Sounds.PlaySFX(3)
                             return true
                         }
                     }

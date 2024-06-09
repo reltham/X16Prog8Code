@@ -7,14 +7,19 @@ Sounds
     bool loopchanged = false
     bool beat = false
 
-    const ubyte num_sfx = 11
+    const ubyte num_sfx = 16
     ubyte[num_sfx] sfx_banks
     uword[num_sfx] sfx_addr
     str[num_sfx] sfx_names = [
-        iso:"UFO_14.ZSM",
-        iso:"UFO_16.ZSM",
+        iso:"SPACEWARP10.ZSM",
+        iso:"ENEMYSHOOT11.ZSM", 
+        iso:"ENEMYHIT12.ZSM",
+        iso:"ENEMYDIVE14.ZSM",
+        iso:"PLAYERSHOOT16.ZSM",
         iso:"BOOM_15.ZSM",
         iso:"PEW_16.ZSM",
+        iso:"UFO_14.ZSM",
+        iso:"UFO_16.ZSM",
         iso:"WIBBLE_16.ZSM",
         iso:"SWEEPDOWNL_15.ZSM",
         iso:"SWEEPUP_15.ZSM",
@@ -27,14 +32,19 @@ Sounds
         1,
         2,
         3,
-        4,
         5,
+        7,
         6,
         7,
-        4,
         5,
+        7,
+        7,
         6,
-        7
+        6,
+        1,
+        2,
+        3,
+        4
     ]
 
     sub GetLoopChanged() -> bool
@@ -107,7 +117,7 @@ Sounds
         }
 
         ; start the music playing
-        zsmkit.zsm_setatten(0, 30)
+        zsmkit.zsm_setatten(0, 45)
         zsmkit.zsm_play(0)
         zsmkit.zsm_setcb(0, &zsm_callback_handler)
 

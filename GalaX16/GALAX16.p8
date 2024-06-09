@@ -175,7 +175,7 @@ zsmkit_lib:
 
     sub EnemiesCleared()
     {
-        Sounds.PlaySFX(4)
+        Sounds.PlaySFX(0)
         Entity.ResetFormationMotion()
         Entity.random_chance -= 10
         if (Entity.random_chance < 10)
