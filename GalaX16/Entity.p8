@@ -3,10 +3,8 @@ Entity
     const uword entities_addr = $A000
 
     ; entities are 32 bytes each
-    const ubyte entity_x = 0
-    const ubyte entity_y = 2
-    const ubyte entity_sprite_index = 4
-    const ubyte entity_sprite_setup = 5
+    const ubyte entity_sprite_slot = 0
+    ;const ubyte entity_   1-5 free
     const ubyte entity_ship_index = 6
     const ubyte entity_state = 7
     const ubyte entity_state_data = 8 ; state data size varies by type, max of 12 bytes
@@ -41,12 +39,6 @@ Entity
     const ubyte formation_state_init = 1
     const ubyte formation_state_fly_to = 2
     const ubyte formation_state_in_slot = 3
-    
-    ; only the first 4 ships have formation anims
-    ubyte[] ship_sprite_formation_anims = [  0,  1,
-                                            16, 17,
-                                            48, 49,
-                                            80, 81 ]
 
     ubyte bullet_entities_start = 0
     ubyte num_active_enemies = 0
@@ -96,14 +88,15 @@ Entity
             uword @zp this_bullet_entity = entities_addr + (bullet_entity_index[bullet] as uword << 5)
             uword @zp next_bullet_entity = entities_addr + (bullet_entity_index[bullet+1] as uword << 5)
             ubyte i
-            for i in 0 to 31
+            for i in 1 to 31
             {
                 this_bullet_entity[i] = next_bullet_entity[i]
             }
             this_bullet_entity[entity_state_data] = bullet
+            sprites.SetX(this_bullet_entity[entity_sprite_slot], sprites.GetX(next_bullet_entity[entity_sprite_slot]) as uword)
+            sprites.SetY(this_bullet_entity[entity_sprite_slot], sprites.GetY(next_bullet_entity[entity_sprite_slot]) as uword)
             next_bullet_entity[entity_state] = state_none
-            pokew(next_bullet_entity + entity_y, -17 as uword)
-            UpdateSprites(bullet_entity_index[bullet+1], 1)
+            sprites.SetY(next_bullet_entity[entity_sprite_slot], -17 as uword)
             bullet_x[bullet] = bullet_x[bullet+1]
             bullet_y[bullet] = bullet_y[bullet+1]
         }
@@ -111,8 +104,7 @@ Entity
         {
             uword @zp curr_bullet_entity = entities_addr + (bullet_entity_index[bullet] as uword << 5)
             curr_bullet_entity[entity_state] = state_none
-            pokew(curr_bullet_entity + entity_y, -17 as uword)
-            UpdateSprites(bullet_entity_index[bullet], 1)
+            sprites.SetY(curr_bullet_entity[entity_sprite_slot], -17 as uword)
         }
     }
 
@@ -123,14 +115,15 @@ Entity
             uword @zp this_bullet_entity = entities_addr + (bullet_entity_index[bullet] as uword << 5)
             uword @zp next_bullet_entity = entities_addr + (bullet_entity_index[bullet+1] as uword << 5)
             ubyte i
-            for i in 0 to 31
+            for i in 1 to 31
             {
                 this_bullet_entity[i] = next_bullet_entity[i]
             }
             this_bullet_entity[entity_state_data] = bullet
+            sprites.SetX(this_bullet_entity[entity_sprite_slot], sprites.GetX(next_bullet_entity[entity_sprite_slot]) as uword)
+            sprites.SetY(this_bullet_entity[entity_sprite_slot], sprites.GetY(next_bullet_entity[entity_sprite_slot]) as uword)
             next_bullet_entity[entity_state] = state_none
-            pokew(next_bullet_entity + entity_y, -17 as uword)
-            UpdateSprites(bullet_entity_index[bullet+1], 1)
+            sprites.SetY(next_bullet_entity[entity_sprite_slot], -17 as uword)
             bullet_x[bullet] = bullet_x[bullet+1]
             bullet_y[bullet] = bullet_y[bullet+1]
         }
@@ -138,8 +131,7 @@ Entity
         {
             uword @zp curr_bullet_entity = entities_addr + (bullet_entity_index[bullet] as uword << 5)
             curr_bullet_entity[entity_state] = state_none
-            pokew(curr_bullet_entity + entity_y, -17 as uword)
-            UpdateSprites(bullet_entity_index[bullet], 1)
+            sprites.SetY(curr_bullet_entity[entity_sprite_slot], -17 as uword)
         }
     }
 
@@ -169,16 +161,16 @@ Entity
     sub CheckEnemyPlayerHit(ubyte playerEntityIndex) -> bool
     {
         uword @zp curr_enemy_entity = entities_addr + (enemy_diving_index as uword << 5)
-        uword test_enemy_y = peekw(curr_enemy_entity + entity_y)
+        uword test_enemy_y = sprites.GetY(curr_enemy_entity[entity_sprite_slot]) as uword
 
         uword @zp curr_player_entity = entities_addr + (playerEntityIndex as uword << 5)
-        uword text_player_y = peekw(curr_player_entity + entity_y)
+        uword text_player_y = sprites.GetY(curr_player_entity[entity_sprite_slot]) as uword
 
         uword dy = math.diffw(test_enemy_y, text_player_y)
         if (dy < 16)
         {
-            uword test_enemy_x = peekw(curr_enemy_entity + entity_x) + 8
-            uword text_player_x = peekw(curr_player_entity + entity_x) + 8
+            uword test_enemy_x = sprites.GetX(curr_enemy_entity[entity_sprite_slot]) as uword + 8
+            uword text_player_x = sprites.GetX(curr_player_entity[entity_sprite_slot]) as uword + 8
             uword dx = math.diffw(test_enemy_x, text_player_x)
             if (dx <= 8)
             {
@@ -236,11 +228,12 @@ Entity
     sub Add(ubyte entityIndex, uword xPos, uword yPos, ubyte shipIndex, ubyte state, ubyte stateData)
     {
         uword @zp curr_entity = entities_addr + (entityIndex as uword << 5)
-        pokew(curr_entity + entity_x, xPos as uword)
-        pokew(curr_entity + entity_y, yPos as uword)
+
+        sprites.SetPosition(curr_entity[entity_sprite_slot], xPos as uword, yPos as uword)
+
         if (state == state_onpath or state == state_formation or state == state_player)
         {
-            curr_entity[entity_sprite_index] = SpritePathTables.GetSpriteOffset(shipIndex)
+            sprites.SetAddress(curr_entity[entity_sprite_slot], GameData.GetSpriteOffset(shipIndex))
             curr_entity[entity_ship_index] = shipIndex
             if (state != state_player)
             {
@@ -249,10 +242,9 @@ Entity
         }
         else
         {
-            curr_entity[entity_sprite_index] = shipIndex
+            sprites.SetAddress(curr_entity[entity_sprite_slot], shipIndex)
             curr_entity[entity_ship_index] = -1
         }
-        curr_entity[entity_sprite_setup] = 0
         curr_entity[entity_state] = state
         curr_entity[entity_state_data] = stateData
         curr_entity[entity_state_data + 1] = 0
@@ -289,11 +281,6 @@ Entity
             curr_entity[entity_state_data + 1] = stateData
             num_enemy_bullets++
         }
-
-        ; move sprite off screen, first update will put it where it goes
-        sprites.position(entityIndex, 0, -17 as uword)
-        ; sprites are 16x16, 8bpp, and between layer 0 and layer 1
-        sprites.setup(entityIndex, %00000101, %00001000, 0)
     }
 
     sub SetNextState(ubyte entityIndex, ubyte nextState, ubyte nextStateData, ubyte nextStateData2)
@@ -314,17 +301,16 @@ Entity
         }
         else
         {
-            pokew(curr_entity + entity_x, xPos)
-            pokew(curr_entity + entity_y, yPos)
+            sprites.SetPosition(curr_entity[entity_sprite_slot], xPos, xPos)
         }
     }
 
     sub UpdatePosition(ubyte entityIndex, word xPos, word yPos)
     {
         uword @zp curr_entity = entities_addr + (entityIndex as uword << 5)
-        
-        word xPosA = peekw(curr_entity + entity_x) + xPos
-        word yPosA = peekw(curr_entity + entity_y) + yPos
+
+        word xPosA = sprites.GetX(curr_entity[entity_sprite_slot]) + xPos
+        word yPosA = sprites.GetY(curr_entity[entity_sprite_slot]) + yPos
 
         ; wrap on screen edges (but allow sprites to move off edges before wrapping)
         if (msb(xPosA) != 0)
@@ -338,8 +324,7 @@ Entity
             else if (yPosA < -16) yPosA += 416
         }
 
-        pokew(curr_entity + entity_x, xPosA as uword)
-        pokew(curr_entity + entity_y, yPosA as uword)
+        sprites.SetPosition(curr_entity[entity_sprite_slot], xPosA as uword, yPosA as uword)
     }
 
     sub UpdateEntity(ubyte entityIndex) -> bool
@@ -371,7 +356,7 @@ Entity
         }
         else if (curr_entity[entity_state] == state_player)
         {
-            pokew(curr_entity + entity_x, InputHandler.player_offset)
+            sprites.SetX(curr_entity[entity_sprite_slot], InputHandler.player_offset)
             bool kill_player = false
             if (enemy_diving == true)
             {
@@ -386,8 +371,8 @@ Entity
             }
             if (kill_player == false and num_enemy_bullets > 0)
             {
-                uword player_x = peekw(curr_entity + entity_x)
-                uword player_y = peekw(curr_entity + entity_y)
+                uword player_x = sprites.GetX(curr_entity[entity_sprite_slot]) as uword
+                uword player_y = sprites.GetY(curr_entity[entity_sprite_slot]) as uword
                 if (CheckEnemyBulletHit(player_x, player_y) == true)
                 {
                     kill_player = true
@@ -406,22 +391,22 @@ Entity
         else if (curr_entity[entity_state] == state_start_explosion)
         {
             Sounds.PlaySFX(2)
-            curr_entity[entity_sprite_index] = GameData.sprite_indices[GameData.enemy_explosion_start]
+            sprites.SetAddress(curr_entity[entity_sprite_slot], GameData.sprite_indices[GameData.enemy_explosion_start])
             curr_entity[entity_ship_index] = -1
             curr_entity[entity_state] = state_explosion
-            curr_entity[entity_state_data] = 0
+            curr_entity[entity_state_data] = 1
             return false
         }
         else if (curr_entity[entity_state] == state_explosion)
         {
-            if (curr_entity[entity_state_data] < 2)
+            if (curr_entity[entity_state_data] < 3)
             {
-                curr_entity[entity_sprite_index]++
+                sprites.SetAddress(curr_entity[entity_sprite_slot], GameData.sprite_indices[GameData.enemy_explosion_start] + curr_entity[entity_state_data])
                 curr_entity[entity_state_data]++
             }
             else
             {
-                pokew(curr_entity + entity_y, -17 as uword)
+                sprites.SetY(curr_entity[entity_sprite_slot], -17 as uword)
                 curr_entity[entity_state] = state_none
                 if (curr_entity[entity_state_data + 1] > 0)
                 {
@@ -436,9 +421,9 @@ Entity
         }
         else if (curr_entity[entity_state] == state_player_bullet)
         {
-            word curr_player_bullet_y = peekw(curr_entity + entity_y) as word
+            word curr_player_bullet_y = sprites.GetY(curr_entity[entity_sprite_slot])
             curr_player_bullet_y -= 8
-            pokew(curr_entity + entity_y, curr_player_bullet_y as uword)
+            sprites.SetY(curr_entity[entity_sprite_slot], curr_player_bullet_y as uword)
             bullet_y[curr_entity[entity_state_data]] = curr_player_bullet_y as uword
             if (curr_player_bullet_y < -16)
             {
@@ -449,14 +434,13 @@ Entity
         }
         else if (curr_entity[entity_state] == state_enemy_bullet)
         {
-            word curr_bullet_y = peekw(curr_entity + entity_y) as word
-            word curr_bullet_x = peekw(curr_entity + entity_x) as word
+            word curr_bullet_x = sprites.GetX(curr_entity[entity_sprite_slot])
+            word curr_bullet_y = sprites.GetY(curr_entity[entity_sprite_slot])
             curr_bullet_y += 4
             curr_bullet_x += curr_entity[entity_state_data + 1] as byte
-            pokew(curr_entity + entity_y, curr_bullet_y as uword)
-            pokew(curr_entity + entity_x, curr_bullet_x as uword)
-            bullet_y[curr_entity[entity_state_data]] = curr_bullet_y as uword
+            sprites.SetPosition(curr_entity[entity_sprite_slot], curr_bullet_x as uword, curr_bullet_y as uword)
             bullet_x[curr_entity[entity_state_data]] = curr_bullet_x as uword
+            bullet_y[curr_entity[entity_state_data]] = curr_bullet_y as uword
             if (curr_bullet_y > 400)
             {
                 RemoveEnemyBullet(curr_entity[entity_state_data])
@@ -468,8 +452,8 @@ Entity
         {
             if (curr_entity[entity_state_data] == formation_state_init)
             {
-                word curr_x = peekw(curr_entity + entity_x) as word
-                word curr_y = peekw(curr_entity + entity_y) as word
+                word curr_x = sprites.GetX(curr_entity[entity_sprite_slot])
+                word curr_y = sprites.GetY(curr_entity[entity_sprite_slot])
                 word target_x = peekw(curr_entity + entity_state_data + 2) as word + curr_formation_x_offset
                 word target_y = peekw(curr_entity + entity_state_data + 4) as word + curr_formation_y_offset
                 word diff_x = (target_x - curr_x)
@@ -489,22 +473,21 @@ Entity
                 ubyte direction = 24 - ((math.direction_sc(0, 0, curr_entity[entity_state_data + 6] as byte, curr_entity[entity_state_data + 7] as byte) + 18) % 24)
 
                 ; set sprite image index and flips
-                uword sprite_info = SpritePathTables.GetSpriteRotationInfo(curr_entity[entity_ship_index], direction)
-                curr_entity[entity_sprite_index] = msb(sprite_info)
-                curr_entity[entity_sprite_setup] = lsb(sprite_info)
+                uword sprite_info = GameData.GetSpriteRotationInfo(curr_entity[entity_ship_index], direction)
+                sprites.SetAddress(curr_entity[entity_sprite_slot], msb(sprite_info))
+                sprites.SetFlips(curr_entity[entity_sprite_slot], lsb(sprite_info))
 
                 ; do first step
                 curr_x += curr_entity[entity_state_data + 6] as byte
                 curr_y += curr_entity[entity_state_data + 7] as byte
-                pokew(curr_entity + entity_x, curr_x as uword)
-                pokew(curr_entity + entity_y, curr_y as uword)
-                
+                sprites.SetPosition(curr_entity[entity_sprite_slot], curr_x as uword, curr_y as uword)
+
                 curr_entity[entity_state_data] = formation_state_fly_to
             }
             else if (curr_entity[entity_state_data] == formation_state_fly_to)
             {
-                curr_x = peekw(curr_entity + entity_x) as word
-                curr_y = peekw(curr_entity + entity_y) as word
+                curr_x = sprites.GetX(curr_entity[entity_sprite_slot])
+                curr_y = sprites.GetY(curr_entity[entity_sprite_slot])
                 curr_x += curr_entity[entity_state_data + 6] as byte
                 curr_y += curr_entity[entity_state_data + 7] as byte
                 curr_entity[entity_state_data + 8]--
@@ -514,11 +497,10 @@ Entity
                     curr_y = peekw(curr_entity + entity_state_data + 4) as word
                     curr_entity[entity_state_data] = formation_state_in_slot
                 }
-                pokew(curr_entity + entity_x, curr_x as uword)
-                pokew(curr_entity + entity_y, curr_y as uword)
-                sprite_info = SpritePathTables.GetSpriteRotationInfo(curr_entity[entity_ship_index], 0)
-                curr_entity[entity_sprite_index] = msb(sprite_info)
-                curr_entity[entity_sprite_setup] = lsb(sprite_info)
+                sprites.SetPosition(curr_entity[entity_sprite_slot], curr_x as uword, curr_y as uword)
+                sprite_info = GameData.GetSpriteRotationInfo(curr_entity[entity_ship_index], 0)
+                sprites.SetAddress(curr_entity[entity_sprite_slot], msb(sprite_info))
+                sprites.SetFlips(curr_entity[entity_sprite_slot], lsb(sprite_info))
             }
             else if (curr_entity[entity_state_data] == formation_state_in_slot)
             {
@@ -528,8 +510,7 @@ Entity
                     target_y = peekw(curr_entity + entity_state_data + 4) as word
                     curr_x = target_x + curr_formation_x_offset
                     curr_y = target_y + curr_formation_y_offset
-                    pokew(curr_entity + entity_x, curr_x as uword)
-                    pokew(curr_entity + entity_y, curr_y as uword)
+                    sprites.SetPosition(curr_entity[entity_sprite_slot], curr_x as uword, curr_y as uword)
                 }
                 if (enable_enemy_diving == true)
                 {
@@ -565,8 +546,8 @@ Entity
                 }
             }
 
-            uword test_x = peekw(curr_entity + entity_x) + 8
-            uword test_y = peekw(curr_entity + entity_y)
+            uword test_x = sprites.GetX(curr_entity[entity_sprite_slot]) as uword + 8
+            uword test_y = sprites.GetY(curr_entity[entity_sprite_slot]) as uword
             if (CheckPlayerBulletHits(test_x, test_y))
             {
                 curr_entity[entity_state] = state_start_explosion
@@ -641,9 +622,9 @@ Entity
             }
 
             UpdatePosition(entityIndex, pathEntry[2] as word, pathEntry[3] as word)
-            curr_entity[entity_sprite_index] = pathEntry[5] as ubyte
-            curr_entity[entity_sprite_setup] = pathEntry[6] as ubyte
-            
+            sprites.SetAddress(curr_entity[entity_sprite_slot], pathEntry[5] as ubyte)
+            sprites.SetFlips(curr_entity[entity_sprite_slot], pathEntry[6] as ubyte)
+
             if (curr_entity[entity_state_path_repeat] == 0)
             {
                 curr_entity[entity_state_path_repeat] = pathEntry[1] as ubyte
@@ -654,8 +635,8 @@ Entity
                 curr_entity[entity_state_path_offset]++
             }
 
-            test_x = peekw(curr_entity + entity_x) + 8
-            test_y = peekw(curr_entity + entity_y)
+            test_x = sprites.GetX(curr_entity[entity_sprite_slot]) as uword + 8
+            test_y = sprites.GetY(curr_entity[entity_sprite_slot]) as uword
             if (enemy_diving == true and entityIndex == enemy_diving_index and enemy_bullet_fired == 0 and test_y < 320 and test_y > 120)
             {
                 enemy_bullet_fired = 10
@@ -686,30 +667,12 @@ Entity
     sub InitEntitySlots()
     {
         uword @zp curr_entity = entities_addr
-        repeat 128
+        ubyte entity_index
+        for entity_index in 0 to 127
         {
-            pokew(curr_entity + entity_x, 0)
-            pokew(curr_entity + entity_y, -17 as uword)
+            curr_entity[entity_sprite_slot] = entity_index
             curr_entity[entity_state] = state_none
-            curr_entity[entity_sprite_setup] = 0
-            curr_entity[entity_sprite_index] = 0
             curr_entity += 32
-        }
-    }
-
-    sub UpdateSprites(ubyte startIndex, ubyte numSprites)
-    {
-        uword @zp curr_entity = entities_addr + (startIndex as uword << 5)
-
-        cx16.r0 = $fc00 + (startIndex as uword * 8)
-        repeat numSprites
-        {
-            cx16.r1 = (sprites.sprite_data_vera_addr_shifted + (curr_entity[entity_sprite_index] as uword * 4)) ; calc sprite vera address, but already shifted down 5 (since we only need upper 11 bits) 
-            cx16.r2 = peekw(curr_entity + entity_x)
-            cx16.r3 = peekw(curr_entity + entity_y)
-            sprites.updateEx(curr_entity[entity_sprite_setup])
-            curr_entity += 32
-            cx16.r0 += 8
         }
     }
 }

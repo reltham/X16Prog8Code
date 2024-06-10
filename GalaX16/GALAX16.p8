@@ -61,8 +61,7 @@ zsmkit_lib:
         repeat
         {
             GameData.Begin()
-            Entity.UpdateSprites(0, sequencer_entities_start) ;num_entities + Entity.num_player_bullets)
-            Entity.UpdateSprites(sequencer_entities_start, num_sequencer_entities)
+            sprites.Update()
             GameData.End()
 
             if (not InputHandler.IsPaused()); and (rate % 8) == 0)
