@@ -93,8 +93,7 @@ Entity
                 this_bullet_entity[i] = next_bullet_entity[i]
             }
             this_bullet_entity[entity_state_data] = bullet
-            sprites.SetX(this_bullet_entity[entity_sprite_slot], sprites.GetX(next_bullet_entity[entity_sprite_slot]) as uword)
-            sprites.SetY(this_bullet_entity[entity_sprite_slot], sprites.GetY(next_bullet_entity[entity_sprite_slot]) as uword)
+            sprites.SetPosition(this_bullet_entity[entity_sprite_slot], sprites.GetX(next_bullet_entity[entity_sprite_slot]) as uword, sprites.GetY(next_bullet_entity[entity_sprite_slot]) as uword)
             next_bullet_entity[entity_state] = state_none
             sprites.SetY(next_bullet_entity[entity_sprite_slot], -17 as uword)
             bullet_x[bullet] = bullet_x[bullet+1]
@@ -120,8 +119,7 @@ Entity
                 this_bullet_entity[i] = next_bullet_entity[i]
             }
             this_bullet_entity[entity_state_data] = bullet
-            sprites.SetX(this_bullet_entity[entity_sprite_slot], sprites.GetX(next_bullet_entity[entity_sprite_slot]) as uword)
-            sprites.SetY(this_bullet_entity[entity_sprite_slot], sprites.GetY(next_bullet_entity[entity_sprite_slot]) as uword)
+            sprites.SetPosition(this_bullet_entity[entity_sprite_slot], sprites.GetX(next_bullet_entity[entity_sprite_slot]) as uword, sprites.GetY(next_bullet_entity[entity_sprite_slot]) as uword)
             next_bullet_entity[entity_state] = state_none
             sprites.SetY(next_bullet_entity[entity_sprite_slot], -17 as uword)
             bullet_x[bullet] = bullet_x[bullet+1]
@@ -164,14 +162,14 @@ Entity
         uword test_enemy_y = sprites.GetY(curr_enemy_entity[entity_sprite_slot]) as uword
 
         uword @zp curr_player_entity = entities_addr + (playerEntityIndex as uword << 5)
-        uword text_player_y = sprites.GetY(curr_player_entity[entity_sprite_slot]) as uword
+        uword test_player_y = sprites.GetY(curr_player_entity[entity_sprite_slot]) as uword
 
-        uword dy = math.diffw(test_enemy_y, text_player_y)
+        uword dy = math.diffw(test_enemy_y, test_player_y)
         if (dy < 16)
         {
             uword test_enemy_x = sprites.GetX(curr_enemy_entity[entity_sprite_slot]) as uword + 8
-            uword text_player_x = sprites.GetX(curr_player_entity[entity_sprite_slot]) as uword + 8
-            uword dx = math.diffw(test_enemy_x, text_player_x)
+            uword test_player_x = sprites.GetX(curr_player_entity[entity_sprite_slot]) as uword + 8
+            uword dx = math.diffw(test_enemy_x, test_player_x)
             if (dx <= 8)
             {
                 return true
@@ -291,21 +289,14 @@ Entity
         curr_entity[entity_state_next_state_data + 1] = nextStateData2
     }
 
-    sub SetPosition(ubyte entityIndex, uword xPos, uword yPos, bool bIntoNextStateData)
+    sub SetPosition(ubyte entityIndex, uword xPos, uword yPos)
     {
         uword @zp curr_entity = entities_addr + (entityIndex as uword << 5)
-        if (bIntoNextStateData == true)
-        {
-            pokew(curr_entity + entity_state_next_state_data + 2, xPos)
-            pokew(curr_entity + entity_state_next_state_data + 4, yPos)
-        }
-        else
-        {
-            sprites.SetPosition(curr_entity[entity_sprite_slot], xPos, xPos)
-        }
+        pokew(curr_entity + entity_state_next_state_data + 2, xPos)
+        pokew(curr_entity + entity_state_next_state_data + 4, yPos)
     }
 
-    sub UpdatePosition(ubyte entityIndex, word xPos, word yPos)
+    sub UpdateSpriteSlot(ubyte entityIndex, word xPos, word yPos, ubyte spriteIndex, ubyte spriteFlips)
     {
         uword @zp curr_entity = entities_addr + (entityIndex as uword << 5)
 
@@ -324,7 +315,7 @@ Entity
             else if (yPosA < -16) yPosA += 416
         }
 
-        sprites.SetPosition(curr_entity[entity_sprite_slot], xPosA as uword, yPosA as uword)
+        sprites.SetPosAddrFlips(curr_entity[entity_sprite_slot], xPosA as uword, yPosA as uword, spriteIndex, spriteFlips) 
     }
 
     sub UpdateEntity(ubyte entityIndex) -> bool
@@ -531,7 +522,7 @@ Entity
                                 curr_entity[entity_state_data + i] = -1
                             }
                             SetNextState(entityIndex, state_formation, formation_state_init, saved_formation_slot)
-                            Sequencer.SetEntityFormationPosition(entityIndex, saved_formation_slot, true)
+                            Sequencer.SetEntityFormationPosition(entityIndex, saved_formation_slot)
                             enemy_diving_index = entityIndex
                             enemy_diving = true
                             enemy_bullet_fired = 30
@@ -621,9 +612,7 @@ Entity
                 return true
             }
 
-            UpdatePosition(entityIndex, pathEntry[2] as word, pathEntry[3] as word)
-            sprites.SetAddress(curr_entity[entity_sprite_slot], pathEntry[5] as ubyte)
-            sprites.SetFlips(curr_entity[entity_sprite_slot], pathEntry[6] as ubyte)
+            UpdateSpriteSlot(entityIndex, pathEntry[2] as word, pathEntry[3] as word, pathEntry[5] as ubyte, pathEntry[6] as ubyte)
 
             if (curr_entity[entity_state_path_repeat] == 0)
             {

@@ -65,6 +65,22 @@ sprites
         }
         Update()
     }
+
+    sub SetPosAddrFlips(ubyte slot, uword newX, uword newY, ubyte index, ubyte flips)
+    {
+        uword @zp curr_sprite_slot = sprite_data_addr + (slot as uword << 3);
+
+        pokew(curr_sprite_slot + sprite_position_x, newX)
+        pokew(curr_sprite_slot + sprite_position_y, newY)
+
+        uword addr = (sprite_data_vera_addr_shifted + (index as uword << 2)) ; calc sprite vera address, but already shifted down 5 (since we only need upper 11 bits)
+        curr_sprite_slot[sprite_address_low] = lsb(addr)
+        ubyte curr_mode = curr_sprite_slot[sprite_address_high_mode] & %10000000
+        curr_sprite_slot[sprite_address_high_mode] = msb(addr) | curr_mode
+
+        curr_sprite_slot[sprite_collision_mask_zdepth_VHFlips] &= %11111100
+        curr_sprite_slot[sprite_collision_mask_zdepth_VHFlips] |= flips
+    }
     
     sub SetAddress(ubyte slot, ubyte index)
     {

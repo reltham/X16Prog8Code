@@ -226,9 +226,9 @@ Sequencer
         return sequencer_entity_index
     }
 
-    sub SetEntityFormationPosition(ubyte entityIndex, ubyte slotIndex, bool bIntoNextStateData)
+    sub SetEntityFormationPosition(ubyte entityIndex, ubyte slotIndex)
     {
-        Entity.SetPosition(entityIndex, formation_positions_x[formation_slots[slotIndex*2]], formation_positions_y[formation_slots[(slotIndex*2)+1]], bIntoNextStateData)
+        Entity.SetPosition(entityIndex, formation_positions_x[formation_slots[slotIndex*2]], formation_positions_y[formation_slots[(slotIndex*2)+1]])
     }
 
     sub InitEntity(uword entity_data)
@@ -248,7 +248,7 @@ Sequencer
                 sequence_formation_slots[sequence_curr_entity_index] = sequence_formation_slots[sequence_curr_entity_index - 1] + entity_data[sequence_formation_inc]
             }
             Entity.SetNextState(sequencer_entity_index, entity_data[sequence_next_state], Entity.formation_state_init, sequence_formation_slots[sequence_curr_entity_index])
-            SetEntityFormationPosition(sequencer_entity_index, sequence_formation_slots[sequence_curr_entity_index], true)
+            SetEntityFormationPosition(sequencer_entity_index, sequence_formation_slots[sequence_curr_entity_index])
         }
         else
         {
