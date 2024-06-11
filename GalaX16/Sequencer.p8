@@ -64,6 +64,42 @@ Sequencer
     ]
 
     ubyte[] sequence0 = [
+        0,   4, 8,
+        1,   0, 0,  9, 0,  6, 0,  Entity.state_formation, 1, 1,
+        2
+    ]
+
+    ubyte[] sequence1 = [
+        0,   4, 8,
+        1,   1, 0,  9, 0,  6, 0,  Entity.state_formation, 7, 1,
+        2
+    ]
+
+    ubyte[] sequence2 = [
+        0,   6, 8,
+        1,   2, 0,  15, 0,  7, 0,  Entity.state_formation, 13, 1,
+        2
+    ]
+
+    ubyte[] sequence3 = [
+        0,   6, 8,
+        1,   3, 0,  15, 0,  7, 0,  Entity.state_formation, 21, 1,
+        2
+    ]
+
+    ubyte[] sequence4 = [
+        0,   8, 8,
+        1,   4, 0,  9, 0,  6, 0,  Entity.state_formation, 29, 1,
+        2
+    ]
+
+    ubyte[] sequence5 = [
+        0,   8, 8,
+        1,   5, 0,  15, 0,  7, 0,  Entity.state_formation, 39, 1,
+        2
+    ]
+/*
+    ubyte[] sequence0 = [
         0,   6, 6,
         1,   0, 0,  9, 0,  6, 0,  Entity.state_formation, 0, 1,
         2
@@ -98,11 +134,25 @@ Sequencer
         1,    6, 0, 15, 0,  7, 0,  Entity.state_formation, 38, 1,
         2
     ]
-
+*/
     uword[] sequences = [
         &sequence0, &sequence1, &sequence2, &sequence3, &sequence4, &sequence5
     ] 
 
+    uword[] formation_positions_x = [
+        40,
+        80,
+        120,
+        160,
+        200,
+        240,
+        280,
+        320,
+        360,
+        400,
+        440
+    ]
+/*
     uword[] formation_positions_x = [
         158,
         178,
@@ -115,13 +165,14 @@ Sequencer
         318,
         338
     ]
+    */
     uword[] formation_positions_y = [
-         20,
+         10,
          40,
-         60,
-         80,
+         70,
         100,
-        120
+        130,
+        160
     ]
     ubyte[] formation_slots = [
                        2, 0,  3, 0,  4, 0,  5, 0,  6, 0,  7, 0,                  ; slots 0-5

@@ -51,7 +51,7 @@ zsmkit_lib:
         Sequencer.StartLevel(0)
         GameData.Begin()
         Entity.InitEntitySlots()
-        Entity.Add(num_entities, 2, 366, 18, Entity.state_player, 0)
+        Entity.Add(num_entities, 2, 366, GameData.player_ship, Entity.state_player, 0)
         player_index = num_entities
         num_entities++
         Entity.SetBulletEntitiesStart(num_entities)
@@ -131,7 +131,7 @@ zsmkit_lib:
                 if (spawn_player == true and Entity.enemy_diving == false)
                 {
                     GameData.Begin()
-                    Entity.Add(player_index, 2, 366, 18, Entity.state_player, 0)
+                    Entity.Add(player_index, 2, 366, GameData.player_ship, Entity.state_player, 0)
                     GameData.End()
                     Entity.enable_enemy_diving = true
                     spawn_player = false

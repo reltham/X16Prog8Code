@@ -95,7 +95,7 @@ Entity
             this_bullet_entity[entity_state_data] = bullet
             sprites.SetPosition(this_bullet_entity[entity_sprite_slot], sprites.GetX(next_bullet_entity[entity_sprite_slot]) as uword, sprites.GetY(next_bullet_entity[entity_sprite_slot]) as uword)
             next_bullet_entity[entity_state] = state_none
-            sprites.SetY(next_bullet_entity[entity_sprite_slot], -17 as uword)
+            sprites.SetY(next_bullet_entity[entity_sprite_slot], -33 as uword)
             bullet_x[bullet] = bullet_x[bullet+1]
             bullet_y[bullet] = bullet_y[bullet+1]
         }
@@ -103,7 +103,7 @@ Entity
         {
             uword @zp curr_bullet_entity = entities_addr + (bullet_entity_index[bullet] as uword << 5)
             curr_bullet_entity[entity_state] = state_none
-            sprites.SetY(curr_bullet_entity[entity_sprite_slot], -17 as uword)
+            sprites.SetY(curr_bullet_entity[entity_sprite_slot], -33 as uword)
         }
     }
 
@@ -121,7 +121,7 @@ Entity
             this_bullet_entity[entity_state_data] = bullet
             sprites.SetPosition(this_bullet_entity[entity_sprite_slot], sprites.GetX(next_bullet_entity[entity_sprite_slot]) as uword, sprites.GetY(next_bullet_entity[entity_sprite_slot]) as uword)
             next_bullet_entity[entity_state] = state_none
-            sprites.SetY(next_bullet_entity[entity_sprite_slot], -17 as uword)
+            sprites.SetY(next_bullet_entity[entity_sprite_slot], -33 as uword)
             bullet_x[bullet] = bullet_x[bullet+1]
             bullet_y[bullet] = bullet_y[bullet+1]
         }
@@ -129,7 +129,7 @@ Entity
         {
             uword @zp curr_bullet_entity = entities_addr + (bullet_entity_index[bullet] as uword << 5)
             curr_bullet_entity[entity_state] = state_none
-            sprites.SetY(curr_bullet_entity[entity_sprite_slot], -17 as uword)
+            sprites.SetY(curr_bullet_entity[entity_sprite_slot], -33 as uword)
         }
     }
 
@@ -207,7 +207,7 @@ Entity
         {
             Sounds.PlaySFX(4)
             GameData.Begin()
-            Add(bullet_entities_start + num_player_bullets, InputHandler.player_offset, 350, GameData.sprite_indices[GameData.player_bullet], state_player_bullet, 0)
+            Add(bullet_entities_start + num_player_bullets, InputHandler.player_offset, 350, GameData.player_bullet, state_player_bullet, 0)
             GameData.End()
         }
     }
@@ -218,7 +218,7 @@ Entity
         {
             Sounds.PlaySFX(1)
             GameData.Begin()
-            Add(bullet_entities_start + start_enemy_bullets + num_enemy_bullets, enemy_x - 4, enemy_y + 8, GameData.sprite_indices[GameData.enemy_bullet], state_enemy_bullet, dx)
+            Add(bullet_entities_start + start_enemy_bullets + num_enemy_bullets, enemy_x - 4, enemy_y + 8, GameData.enemy_bullet, state_enemy_bullet, dx)
             GameData.End()
         }
     }
@@ -229,9 +229,10 @@ Entity
 
         sprites.SetPosition(curr_entity[entity_sprite_slot], xPos as uword, yPos as uword)
 
-        if (state == state_onpath or state == state_formation or state == state_player)
+        if (state == state_onpath or state == state_formation) ; or state == state_player)
         {
-            sprites.SetAddress(curr_entity[entity_sprite_slot], GameData.GetSpriteOffset(shipIndex))
+            sprites.SetAddress(curr_entity[entity_sprite_slot], GameData.GetShipSpriteOffset(shipIndex))
+            sprites.SetPaletteOffset(curr_entity[entity_sprite_slot], GameData.GetShipSpritePalette(shipIndex))
             curr_entity[entity_ship_index] = shipIndex
             if (state != state_player)
             {
@@ -240,7 +241,8 @@ Entity
         }
         else
         {
-            sprites.SetAddress(curr_entity[entity_sprite_slot], shipIndex)
+            sprites.SetAddress(curr_entity[entity_sprite_slot], GameData.sprite_indices[shipIndex])
+            sprites.SetPaletteOffset(curr_entity[entity_sprite_slot], GameData.sprite_palettes[shipIndex])
             curr_entity[entity_ship_index] = -1
         }
         curr_entity[entity_state] = state
@@ -306,13 +308,13 @@ Entity
         ; wrap on screen edges (but allow sprites to move off edges before wrapping)
         if (msb(xPosA) != 0)
         {
-            if (xPosA > 511) xPosA -= 528
-            else if (xPosA < -16) xPosA += 528
+            if (xPosA > 511) xPosA -= 544
+            else if (xPosA < -32) xPosA += 544
         }
         if (msb(yPosA) != 0)
         {
-            if (yPosA > 399) yPosA -= 416
-            else if (yPosA < -16) yPosA += 416
+            if (yPosA > 399) yPosA -= 432
+            else if (yPosA < -326) yPosA += 432
         }
 
         sprites.SetPosAddrFlips(curr_entity[entity_sprite_slot], xPosA as uword, yPosA as uword, spriteIndex, spriteFlips) 
@@ -324,12 +326,12 @@ Entity
         {
             if (formation_offset_update == 0)
             {
-                if (curr_formation_x_offset > 128) formation_direction_x = -1
-                if (curr_formation_x_offset < -128) formation_direction_x = 1
+                if (curr_formation_x_offset > 64) formation_direction_x = -1
+                if (curr_formation_x_offset < -64) formation_direction_x = 1
                 curr_formation_x_offset += formation_direction_x
     
-                if (curr_formation_y_offset > 32) formation_direction_y = -1
-                if (curr_formation_y_offset < -16) formation_direction_y = 1
+                if (curr_formation_y_offset > 20) formation_direction_y = -1
+                if (curr_formation_y_offset < -10) formation_direction_y = 1
                 curr_formation_y_offset += formation_direction_y
                 formation_offset_update = 2
             }
@@ -383,6 +385,7 @@ Entity
         {
             Sounds.PlaySFX(2)
             sprites.SetAddress(curr_entity[entity_sprite_slot], GameData.sprite_indices[GameData.enemy_explosion_start])
+            sprites.SetPaletteOffset(curr_entity[entity_sprite_slot], GameData.sprite_palettes[GameData.enemy_explosion_start])
             curr_entity[entity_ship_index] = -1
             curr_entity[entity_state] = state_explosion
             curr_entity[entity_state_data] = 1
@@ -390,14 +393,14 @@ Entity
         }
         else if (curr_entity[entity_state] == state_explosion)
         {
-            if (curr_entity[entity_state_data] < 3)
+            if (curr_entity[entity_state_data] < 5)
             {
                 sprites.SetAddress(curr_entity[entity_sprite_slot], GameData.sprite_indices[GameData.enemy_explosion_start] + curr_entity[entity_state_data])
                 curr_entity[entity_state_data]++
             }
             else
             {
-                sprites.SetY(curr_entity[entity_sprite_slot], -17 as uword)
+                sprites.SetY(curr_entity[entity_sprite_slot], -33 as uword)
                 curr_entity[entity_state] = state_none
                 if (curr_entity[entity_state_data + 1] > 0)
                 {
@@ -416,7 +419,7 @@ Entity
             curr_player_bullet_y -= 8
             sprites.SetY(curr_entity[entity_sprite_slot], curr_player_bullet_y as uword)
             bullet_y[curr_entity[entity_state_data]] = curr_player_bullet_y as uword
-            if (curr_player_bullet_y < -16)
+            if (curr_player_bullet_y < -32)
             {
                 RemovePlayerBullet(curr_entity[entity_state_data])
                 num_player_bullets--
