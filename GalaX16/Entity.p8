@@ -141,10 +141,10 @@ Entity
             for bullet in 0 to num_player_bullets-1
             {
                 uword dx = math.diffw(bullet_x[bullet], test_entity_x)
-                if (dx < 12)
+                if (dx < 18)
                 {
                     uword dy = math.diffw(bullet_y[bullet], test_entity_y)
-                    if (dy < 16)
+                    if (dy < 14)
                     {
                         RemovePlayerBullet(bullet)
                         num_player_bullets--
@@ -165,12 +165,12 @@ Entity
         uword test_player_y = sprites.GetY(curr_player_entity[entity_sprite_slot]) as uword
 
         uword dy = math.diffw(test_enemy_y, test_player_y)
-        if (dy < 16)
+        if (dy < 24)
         {
-            uword test_enemy_x = sprites.GetX(curr_enemy_entity[entity_sprite_slot]) as uword + 8
-            uword test_player_x = sprites.GetX(curr_player_entity[entity_sprite_slot]) as uword + 8
+            uword test_enemy_x = sprites.GetX(curr_enemy_entity[entity_sprite_slot]) as uword
+            uword test_player_x = sprites.GetX(curr_player_entity[entity_sprite_slot]) as uword
             uword dx = math.diffw(test_enemy_x, test_player_x)
-            if (dx <= 8)
+            if (dx <= 24)
             {
                 return true
             }
@@ -186,10 +186,10 @@ Entity
             for bullet in start_enemy_bullets to start_enemy_bullets + num_enemy_bullets - 1
             {
                 uword dx = math.diffw(bullet_x[bullet], test_entity_x)
-                if (dx < 12)
+                if (dx < 18)
                 {
                     uword dy = math.diffw(bullet_y[bullet], test_entity_y)
-                    if (dy < 16)
+                    if (dy < 13)
                     {
                         RemoveEnemyBullet(bullet)
                         num_enemy_bullets--
@@ -218,7 +218,7 @@ Entity
         {
             Sounds.PlaySFX(1)
             GameData.Begin()
-            Add(bullet_entities_start + start_enemy_bullets + num_enemy_bullets, enemy_x - 4, enemy_y + 8, GameData.enemy_bullet, state_enemy_bullet, dx)
+            Add(bullet_entities_start + start_enemy_bullets + num_enemy_bullets, enemy_x, enemy_y + 16, GameData.enemy_bullet, state_enemy_bullet, dx)
             GameData.End()
         }
     }

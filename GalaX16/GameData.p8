@@ -40,70 +40,13 @@ GameData
         4, 4           ; blue space station
     ]
 
-    ;const ubyte enemy_bullet = 12
-    ;const ubyte player_bullet = 13
-    ;const ubyte enemy_explosion_start = 14
-/*
-    ubyte[] sprite_indices = [  8,    ; 1
-                                24,   ; 5
-                                40,   ; 10
-                                56,   ; 20
-                                72,   ; 30
-                                88,   ; 50
-                                104,  ; player ships remaining
-                                162,  ; 150
-                                163,  ; 400
-                                ;164,  ; 800
-                                165,  ; 1000
-                                166,  ; 1500
-                                167,  ; 1600
-                                ;149,  ; 2000 (2 sprites)
-                                ;151,  ; 3000 (2 sprites)
-                                168,  ; enemy bullet
-                                179,  ; player bullet
-                                146,  ; enemy explosion 
-                                147,
-                                148
-    ]
-    */
-    ubyte[] sprite_indices_4 = [
-                                133,  ; enemy eplosion
-                                117,  
-                                240,  ; player explosion
-                                244,
-                                248,
-                                252
-    ]
-    
-    sub GetSpriteIndicesLen() -> ubyte
-    {
-        return len(sprite_indices)
-    }
-
-    ubyte[] four_sprite_offsets = [  0,  0,
-                                    16,  0,
-                                     0, 16,
-                                    16, 16 ]
-
-    ubyte[6] scoreValues2 = [
+    ubyte[6] scoreValues = [
         10, ; red1
         20, ; red2
         30, ; green1
         20, ; green2
         16, ; blue1
         8   ; blue2
-    ]
-
-    ubyte[9] scoreValues = [
-        10, ; boss green
-        40, ; boss blue
-        16, ; butterfly
-        8,  ; bee
-        10, ; scorpion
-        20, ; green ship
-        30, ; galaxian
-        40, ; dragonfly
-        50  ; enterprise
     ]
 
     ; index, VH flips (0 - no flips, 1 - h flip, 2 - v flip, 3 both flips)
@@ -150,26 +93,6 @@ GameData
         4, ; blue1
         4  ; blue2
     ]
-/*
-    ; first number of pair is the ship in normal colors, the second number is the "lit up" colors 
-    ubyte[] ship_sprite_offset = [
-          1,  33,   ; boss green
-         17,  33,   ; boss blue
-         49,  65,   ; butterfly
-         81,  97,   ; bee
-          9,  25,   ; scorpion
-         41,  57,   ; green ship
-         73,  89,   ; galaxian
-        105, 121,   ; dragonfly
-        137, 153,   ; enterprise
-        169, 185 ]  ; player ship
-*/
-    ; only the first 4 ships have formation anims
-    ubyte[] ship_sprite_formation_anims = [  0,  1,
-                                            16, 17,
-                                            48, 49,
-                                            80, 81 ]
-
 
     sub GetShipSpriteOffset(ubyte shipIndex) -> ubyte
     {

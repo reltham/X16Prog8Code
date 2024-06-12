@@ -85,9 +85,9 @@ InputHandler
         if (newright == true)
         {
             player_offset += 4
-            if (player_offset > 492)
+            if (player_offset > 476)
             {
-                player_offset = 492
+                player_offset = 476
             }
         }
         if (newfire_a != oldfire_a and newfire_a == true)

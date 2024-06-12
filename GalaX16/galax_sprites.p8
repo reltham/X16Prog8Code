@@ -41,9 +41,7 @@ sprites
 
     sub Init()
     {
-        ; load our sprites into VERA, the palette is loaded right into the palette registers at $fa00
-        void diskio.vload_raw(iso:"GALSPRITES.PAL", 1, $fa00)
-        void diskio.vload_raw(iso:"GALSPRITES.BIN", 0, sprite_data_vera_addr)
+        ; load our sprites into VERA, the palettes are loaded right into the palette registers at $fa20+
         void diskio.vload_raw(iso:"EXPLOSIONSMISC.BIN", 1, $0000)
         void diskio.vload_raw(iso:"EXPLOSIONSMISC.PAL", 1, $fa20)
         void diskio.vload_raw(iso:"REDSHIPS.BIN", 1, $2000)
@@ -60,7 +58,6 @@ sprites
         cx16.r1 = sprite_data_vera_addr_shifted2
         cx16.r1H |= mode
         cx16.r2L = collision_mask << 4 | zdepth << 2 | VHFlips
-        ;cx16.r2H = size_16 << 6 | size_16 << 4 | palette_offset 
         cx16.r2H = size_32 << 6 | size_32 << 4 | palette_offset 
         uword @zp curr_sprite_slot = sprite_data_addr;
         repeat 128
