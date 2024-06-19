@@ -40,13 +40,12 @@ Entity
     const ubyte formation_state_fly_to = 2
     const ubyte formation_state_in_slot = 3
 
-    ubyte bullet_entities_start = 0
     ubyte num_active_enemies = 0
     ubyte num_player_bullets = 0
     ubyte num_enemy_bullets = 0
-    const ubyte start_enemy_bullets =2
-    uword[12] bullet_x = 0
-    uword[12] bullet_y = 0
+    const ubyte max_player_bullets = 4
+    const ubyte start_enemy_bullets = 4
+    const ubyte max_enemy_bullets = 8
     ubyte[12] bullet_entity_index = 0
 
     bool enable_formation_moving = false
@@ -65,9 +64,61 @@ Entity
     ; this changes each time you clear a level to make it more likely an enemy will dive 
     ubyte random_chance = 250
 
-    sub SetBulletEntitiesStart(ubyte newStart)
+    ubyte[128] FreeIndices
+    ubyte[128] UsedIndices
+    ubyte NextFree
+
+    sub ResetLists()
     {
-        bullet_entities_start = newStart
+        ubyte i
+        ubyte j = 127
+        for i in 0 to 127
+        {
+            FreeIndices[i] = j
+            j--
+            UsedIndices[i] = 0
+        }
+        NextFree = 127
+    }
+
+    sub GetIndex() -> ubyte
+    {
+        if (NextFree < 128)
+        {
+            ubyte result = FreeIndices[NextFree] 
+            UsedIndices[FreeIndices[NextFree]] = 1
+            FreeIndices[NextFree] = 255
+            NextFree--
+            return result
+        }
+        return 255
+    }
+    
+    sub ReleaseIndex(ubyte index)
+    {
+        if (index < 128 and NextFree < 127)
+        {
+            if (UsedIndices[index] == 1)
+            {
+                NextFree++
+                FreeIndices[NextFree] = index
+                UsedIndices[index] = 0
+            }
+        }
+    }
+
+    sub Update()
+    {
+        bool bFirst = true
+        ubyte i
+        for i in 0 to 127
+        {
+            if (UsedIndices[i] != 0)
+            {
+                UpdateEntity(i, bFirst)
+                bFirst = false
+            }
+        }
     }
 
     sub ResetFormationMotion()
@@ -83,54 +134,40 @@ Entity
     
     sub RemovePlayerBullet(ubyte bullet)
     {
-        if (bullet == 0 and num_player_bullets > 1)
+        uword @zp curr_bullet_entity = entities_addr + (bullet_entity_index[bullet] as uword << 5)
+        curr_bullet_entity[entity_state] = state_none
+        ReleaseIndex(bullet_entity_index[bullet])
+        sprites.SetY(curr_bullet_entity[entity_sprite_slot], -33 as uword)
+        if (bullet < num_player_bullets - 1)
         {
-            uword @zp this_bullet_entity = entities_addr + (bullet_entity_index[bullet] as uword << 5)
-            uword @zp next_bullet_entity = entities_addr + (bullet_entity_index[bullet+1] as uword << 5)
             ubyte i
-            for i in 1 to 31
+            for i in bullet to num_player_bullets - 2
             {
-                this_bullet_entity[i] = next_bullet_entity[i]
+                bullet_entity_index[i] = bullet_entity_index[i + 1]
+                curr_bullet_entity = entities_addr + (bullet_entity_index[i] as uword << 5)
+                curr_bullet_entity[entity_state_data] = i
             }
-            this_bullet_entity[entity_state_data] = bullet
-            sprites.SetPosition(this_bullet_entity[entity_sprite_slot], sprites.GetX(next_bullet_entity[entity_sprite_slot]) as uword, sprites.GetY(next_bullet_entity[entity_sprite_slot]) as uword)
-            next_bullet_entity[entity_state] = state_none
-            sprites.SetY(next_bullet_entity[entity_sprite_slot], -33 as uword)
-            bullet_x[bullet] = bullet_x[bullet+1]
-            bullet_y[bullet] = bullet_y[bullet+1]
         }
-        else
-        {
-            uword @zp curr_bullet_entity = entities_addr + (bullet_entity_index[bullet] as uword << 5)
-            curr_bullet_entity[entity_state] = state_none
-            sprites.SetY(curr_bullet_entity[entity_sprite_slot], -33 as uword)
-        }
+        num_player_bullets--
     }
 
     sub RemoveEnemyBullet(ubyte bullet)
     {
-        if (bullet == start_enemy_bullets and num_enemy_bullets > 1)
+        uword @zp curr_bullet_entity = entities_addr + (bullet_entity_index[bullet] as uword << 5)
+        curr_bullet_entity[entity_state] = state_none
+        ReleaseIndex(bullet_entity_index[bullet])
+        sprites.SetY(curr_bullet_entity[entity_sprite_slot], -33 as uword)
+        if (bullet < start_enemy_bullets + num_enemy_bullets - 1)
         {
-            uword @zp this_bullet_entity = entities_addr + (bullet_entity_index[bullet] as uword << 5)
-            uword @zp next_bullet_entity = entities_addr + (bullet_entity_index[bullet+1] as uword << 5)
             ubyte i
-            for i in 1 to 31
+            for i in bullet to start_enemy_bullets + num_enemy_bullets - 2
             {
-                this_bullet_entity[i] = next_bullet_entity[i]
+                bullet_entity_index[i] = bullet_entity_index[i + 1]
+                curr_bullet_entity = entities_addr + (bullet_entity_index[i] as uword << 5)
+                curr_bullet_entity[entity_state_data] = i
             }
-            this_bullet_entity[entity_state_data] = bullet
-            sprites.SetPosition(this_bullet_entity[entity_sprite_slot], sprites.GetX(next_bullet_entity[entity_sprite_slot]) as uword, sprites.GetY(next_bullet_entity[entity_sprite_slot]) as uword)
-            next_bullet_entity[entity_state] = state_none
-            sprites.SetY(next_bullet_entity[entity_sprite_slot], -33 as uword)
-            bullet_x[bullet] = bullet_x[bullet+1]
-            bullet_y[bullet] = bullet_y[bullet+1]
         }
-        else
-        {
-            uword @zp curr_bullet_entity = entities_addr + (bullet_entity_index[bullet] as uword << 5)
-            curr_bullet_entity[entity_state] = state_none
-            sprites.SetY(curr_bullet_entity[entity_sprite_slot], -33 as uword)
-        }
+        num_enemy_bullets--
     }
 
     sub CheckPlayerBulletHits(uword test_entity_x, uword test_entity_y) -> bool
@@ -140,14 +177,16 @@ Entity
             ubyte bullet
             for bullet in 0 to num_player_bullets-1
             {
-                uword dx = math.diffw(bullet_x[bullet], test_entity_x)
+                uword @zp this_bullet_entity = entities_addr + (bullet_entity_index[bullet] as uword << 5)
+                uword bullet_x = sprites.GetX(this_bullet_entity[entity_sprite_slot]) as uword
+                uword dx = math.diffw(bullet_x, test_entity_x)
                 if (dx < 18)
                 {
-                    uword dy = math.diffw(bullet_y[bullet], test_entity_y)
+                    uword bullet_y = sprites.GetY(this_bullet_entity[entity_sprite_slot]) as uword
+                    uword dy = math.diffw(bullet_y, test_entity_y)
                     if (dy < 14)
                     {
                         RemovePlayerBullet(bullet)
-                        num_player_bullets--
                         return true
                     }
                 }
@@ -185,14 +224,16 @@ Entity
             ubyte bullet
             for bullet in start_enemy_bullets to start_enemy_bullets + num_enemy_bullets - 1
             {
-                uword dx = math.diffw(bullet_x[bullet], test_entity_x)
+                uword @zp this_bullet_entity = entities_addr + (bullet_entity_index[bullet] as uword << 5)
+                uword bullet_x = sprites.GetX(this_bullet_entity[entity_sprite_slot]) as uword
+                uword dx = math.diffw(bullet_x, test_entity_x)
                 if (dx < 18)
                 {
-                    uword dy = math.diffw(bullet_y[bullet], test_entity_y)
+                    uword bullet_y = sprites.GetY(this_bullet_entity[entity_sprite_slot]) as uword
+                    uword dy = math.diffw(bullet_y, test_entity_y)
                     if (dy < 13)
                     {
                         RemoveEnemyBullet(bullet)
-                        num_enemy_bullets--
                         return true
                     }
                 }
@@ -203,22 +244,22 @@ Entity
     
     sub AddPlayerBullet()
     {
-        if (num_player_bullets < 2)
+        if (num_player_bullets < max_player_bullets)
         {
             Sounds.PlaySFX(4)
             GameData.Begin()
-            Add(bullet_entities_start + num_player_bullets, InputHandler.player_offset, 350, GameData.player_bullet, state_player_bullet, 0)
+            Add(GetIndex(), InputHandler.player_offset, 340, GameData.player_bullet, state_player_bullet, 0)
             GameData.End()
         }
     }
 
     sub AddEnemyBullet(uword enemy_x, uword enemy_y, ubyte dx)
     {
-        if (num_enemy_bullets < 2)
+        if (num_enemy_bullets < max_enemy_bullets)
         {
             Sounds.PlaySFX(1)
             GameData.Begin()
-            Add(bullet_entities_start + start_enemy_bullets + num_enemy_bullets, enemy_x, enemy_y + 16, GameData.enemy_bullet, state_enemy_bullet, dx)
+            Add(GetIndex(), enemy_x, enemy_y + 16, GameData.enemy_bullet, state_enemy_bullet, dx)
             GameData.End()
         }
     }
@@ -227,17 +268,13 @@ Entity
     {
         uword @zp curr_entity = entities_addr + (entityIndex as uword << 5)
 
-        sprites.SetPosition(curr_entity[entity_sprite_slot], xPos as uword, yPos as uword)
-
-        if (state == state_onpath or state == state_formation) ; or state == state_player)
+        if (state == state_onpath)
         {
             sprites.SetAddress(curr_entity[entity_sprite_slot], GameData.GetShipSpriteOffset(shipIndex))
             sprites.SetPaletteOffset(curr_entity[entity_sprite_slot], GameData.GetShipSpritePalette(shipIndex))
+            sprites.SetZDepth(curr_entity[entity_sprite_slot], sprites.zdepth_front)
             curr_entity[entity_ship_index] = shipIndex
-            if (state != state_player)
-            {
-                num_active_enemies++
-            }
+            num_active_enemies++
         }
         else
         {
@@ -261,26 +298,29 @@ Entity
             curr_entity[entity_state_next_state_data + i] = -1
         }
 
-        if (state == state_player_bullet and num_player_bullets < 2)
+        if (state == state_player_bullet and num_player_bullets < max_player_bullets)
         {
             bullet_entity_index[num_player_bullets] = entityIndex
             ; these are offset because the bullet image is in the middle of the sprite image
-            bullet_x[num_player_bullets] = xPos + 6
-            bullet_y[num_player_bullets] = yPos - 4
+            xPos += 6
+            yPos -= 4
             curr_entity[entity_state_data] = num_player_bullets
+            curr_entity[entity_state_data + 1] = stateData
             num_player_bullets++
         }
-        if (state == state_enemy_bullet and num_enemy_bullets < 2)
+        if (state == state_enemy_bullet and num_enemy_bullets < max_enemy_bullets)
         {
             ubyte bullet_index = start_enemy_bullets + num_enemy_bullets
             bullet_entity_index[bullet_index] = entityIndex
             ; these are offset because the bullet image is in the middle of the sprite image
-            bullet_x[bullet_index] = xPos + 6
-            bullet_y[bullet_index] = yPos - 4
+            xPos += 6
+            yPos -= 4
             curr_entity[entity_state_data] = bullet_index
             curr_entity[entity_state_data + 1] = stateData
             num_enemy_bullets++
         }
+
+        sprites.SetPosition(curr_entity[entity_sprite_slot], xPos as uword, yPos as uword)
     }
 
     sub SetNextState(ubyte entityIndex, ubyte nextState, ubyte nextStateData, ubyte nextStateData2)
@@ -320,18 +360,18 @@ Entity
         sprites.SetPosAddrFlips(curr_entity[entity_sprite_slot], xPosA as uword, yPosA as uword, spriteIndex, spriteFlips) 
     }
 
-    sub UpdateEntity(ubyte entityIndex) -> bool
+    sub UpdateEntity(ubyte entityIndex, bool bFirstTimePerFrame) -> bool
     {
-        if (enable_formation_moving == true and entityIndex == 32)
+        if (enable_formation_moving == true and bFirstTimePerFrame == true)
         {
             if (formation_offset_update == 0)
             {
-                if (curr_formation_x_offset > 64) formation_direction_x = -1
-                if (curr_formation_x_offset < -64) formation_direction_x = 1
+                if (curr_formation_x_offset > 60) formation_direction_x = -1
+                if (curr_formation_x_offset < -60) formation_direction_x = 1
                 curr_formation_x_offset += formation_direction_x
     
-                if (curr_formation_y_offset > 20) formation_direction_y = -1
-                if (curr_formation_y_offset < -10) formation_direction_y = 1
+                if (curr_formation_y_offset > 10) formation_direction_y = -1
+                if (curr_formation_y_offset < -5) formation_direction_y = 1
                 curr_formation_y_offset += formation_direction_y
                 formation_offset_update = 2
             }
@@ -402,6 +442,7 @@ Entity
             {
                 sprites.SetY(curr_entity[entity_sprite_slot], -33 as uword)
                 curr_entity[entity_state] = state_none
+                ReleaseIndex(entityIndex)
                 if (curr_entity[entity_state_data + 1] > 0)
                 {
                     num_active_enemies--
@@ -415,14 +456,14 @@ Entity
         }
         else if (curr_entity[entity_state] == state_player_bullet)
         {
+            word curr_player_bullet_x = sprites.GetX(curr_entity[entity_sprite_slot])
             word curr_player_bullet_y = sprites.GetY(curr_entity[entity_sprite_slot])
             curr_player_bullet_y -= 8
-            sprites.SetY(curr_entity[entity_sprite_slot], curr_player_bullet_y as uword)
-            bullet_y[curr_entity[entity_state_data]] = curr_player_bullet_y as uword
+            curr_player_bullet_x += curr_entity[entity_state_data + 1] as byte
+            sprites.SetPosition(curr_entity[entity_sprite_slot], curr_player_bullet_x as uword, curr_player_bullet_y as uword)
             if (curr_player_bullet_y < -32)
             {
                 RemovePlayerBullet(curr_entity[entity_state_data])
-                num_player_bullets--
             }
             return false
         }
@@ -433,12 +474,9 @@ Entity
             curr_bullet_y += 4
             curr_bullet_x += curr_entity[entity_state_data + 1] as byte
             sprites.SetPosition(curr_entity[entity_sprite_slot], curr_bullet_x as uword, curr_bullet_y as uword)
-            bullet_x[curr_entity[entity_state_data]] = curr_bullet_x as uword
-            bullet_y[curr_entity[entity_state_data]] = curr_bullet_y as uword
             if (curr_bullet_y > 400)
             {
                 RemoveEnemyBullet(curr_entity[entity_state_data])
-                num_enemy_bullets--
             }
             return false
         }
@@ -464,7 +502,7 @@ Entity
                     curr_entity[entity_state_data + 7] = (diff_y / 24) as ubyte
                     curr_entity[entity_state_data + 8] = 24
                 }
-                ubyte direction = 24 - ((math.direction_sc(0, 0, curr_entity[entity_state_data + 6] as byte, curr_entity[entity_state_data + 7] as byte) + 18) % 24)
+                ubyte direction = 23 - ((math.direction_sc(0, 0, curr_entity[entity_state_data + 6] as byte, curr_entity[entity_state_data + 7] as byte) + 18) % 24)
 
                 ; set sprite image index and flips
                 uword sprite_info = GameData.GetSpriteRotationInfo(curr_entity[entity_ship_index], direction)
@@ -487,14 +525,15 @@ Entity
                 curr_entity[entity_state_data + 8]--
                 if (curr_entity[entity_state_data + 8] == 0)
                 {
-                    curr_x = peekw(curr_entity + entity_state_data + 2) as word 
-                    curr_y = peekw(curr_entity + entity_state_data + 4) as word
+                    curr_x = peekw(curr_entity + entity_state_data + 2) as word + curr_formation_x_offset
+                    curr_y = peekw(curr_entity + entity_state_data + 4) as word + curr_formation_y_offset
                     curr_entity[entity_state_data] = formation_state_in_slot
+                    sprite_info = GameData.GetSpriteRotationInfo(curr_entity[entity_ship_index], 0)
+                    sprites.SetAddress(curr_entity[entity_sprite_slot], msb(sprite_info))
+                    sprites.SetFlips(curr_entity[entity_sprite_slot], lsb(sprite_info))
+                    sprites.SetZDepth(curr_entity[entity_sprite_slot], sprites.zdepth_middle)
                 }
                 sprites.SetPosition(curr_entity[entity_sprite_slot], curr_x as uword, curr_y as uword)
-                sprite_info = GameData.GetSpriteRotationInfo(curr_entity[entity_ship_index], 0)
-                sprites.SetAddress(curr_entity[entity_sprite_slot], msb(sprite_info))
-                sprites.SetFlips(curr_entity[entity_sprite_slot], lsb(sprite_info))
             }
             else if (curr_entity[entity_state_data] == formation_state_in_slot)
             {
@@ -530,6 +569,7 @@ Entity
                             enemy_diving = true
                             enemy_bullet_fired = 30
                             Sounds.PlaySFX(3)
+                            sprites.SetZDepth(curr_entity[entity_sprite_slot], sprites.zdepth_front)
                             return true
                         }
                     }
@@ -631,10 +671,10 @@ Entity
             test_y = sprites.GetY(curr_entity[entity_sprite_slot]) as uword
             if (enemy_diving == true and entityIndex == enemy_diving_index and enemy_bullet_fired == 0 and test_y < 320 and test_y > 120)
             {
-                enemy_bullet_fired = 10
+                enemy_bullet_fired = 15
                 if (num_enemy_bullets > 0)
                 {
-                    enemy_bullet_fired += 180
+                    enemy_bullet_fired = num_enemy_bullets << 5
                 }
                 AddEnemyBullet(test_x, test_y, pathEntry[2] as ubyte)
             }

@@ -31,6 +31,7 @@ Sequencer
     ; if next state is formation
     const ubyte sequence_formation_slot = 8     ; which formation slot (indexes into array of slot positions
     const ubyte sequence_formation_inc  = 9     ; when doing multiple loops, this increments the slot index per loop, must be at least 1
+    const ubyte sequence_formation_prev = 10    ; for this entity, what's the offset to the previous entity 
     
     ; for repeat command
     const ubyte sequence_repeat_count   = 1     ; repeat this many times
@@ -64,38 +65,42 @@ Sequencer
     ]
 
     ubyte[] sequence0 = [
-        0,   4, 6,
-        1,   0, 0,  9, 0,  6, 0,  Entity.state_formation, 1, 1,
+        0,   3, 6,
+        1,   0, 0,   4, 0,  6, 0,  Entity.state_formation, 0,  1, 2,
+        1,   0, 0,  19, 0,  7, 0,  Entity.state_formation, 5, -1, 2,
         2
     ]
 
     ubyte[] sequence1 = [
-        0,   4, 6,
-        1,   1, 0,  9, 0,  6, 0,  Entity.state_formation, 7, 1,
+        0,   3, 6,
+        1,   1, 0,   4, 0,  6, 0,  Entity.state_formation,  6,  1, 2,
+        1,   1, 0,  19, 0,  7, 0,  Entity.state_formation, 11, -1, 2,
         2
     ]
 
     ubyte[] sequence2 = [
-        0,   6, 6,
-        1,   2, 0,  15, 0,  7, 0,  Entity.state_formation, 13, 1,
+        0,   8, 6,
+        1,   2, 0,  19, 0,  7, 0,  Entity.state_formation, 12, 1, 1,
         2
     ]
 
     ubyte[] sequence3 = [
-        0,   6, 6,
-        1,   3, 0,  15, 0,  7, 0,  Entity.state_formation, 21, 1,
+        0,   8, 6,
+        1,   3, 0,  4, 0,  6, 0,  Entity.state_formation, 20, 1, 1,
         2
     ]
 
     ubyte[] sequence4 = [
-        0,   8, 6,
-        1,   4, 0,  9, 0,  6, 0,  Entity.state_formation, 29, 1,
+        0,   4, 6,
+        1,   4, 0,  19, 0,  7, 0,  Entity.state_formation, 37, -1, 2,
+        1,   4, 0,   4, 0,  6, 0,  Entity.state_formation, 28,  1, 2,
         2
     ]
 
     ubyte[] sequence5 = [
-        0,   8, 6,
-        1,   5, 0,  15, 0,  7, 0,  Entity.state_formation, 39, 1,
+        0,   4, 6,
+        1,   5, 0,   4, 0,  6, 0,  Entity.state_formation, 38,  1, 2,
+        1,   5, 0,  19, 0,  7, 0,  Entity.state_formation, 47, -1, 2,
         2
     ]
 
@@ -104,31 +109,36 @@ Sequencer
     ] 
 
     uword[] formation_positions_x = [
-        40,
-        80,
+        85,
         120,
-        160,
-        200,
-        240,
-        280,
-        320,
-        360,
+        155,
+        190,
+        225,
+        260,
+        295,
+        330,
+        365,
         400,
-        440
+        135,
+        170,
+        205,
+        280,
+        315,
+        350
     ]
 
     uword[] formation_positions_y = [
-         10,
-         40,
-         70,
-        100,
-        130,
-        160
+          5,
+         28,
+         51,
+         74,
+         97,
+        120
     ]
 
     ubyte[] formation_slots = [
-                       2, 0,  3, 0,  4, 0,  5, 0,  6, 0,  7, 0,                  ; slots 0-5
-                       2, 1,  3, 1,  4, 1,  5, 1,  6, 1,  7, 1,                  ; slots 6-11
+               10, 0, 11, 0, 12, 0,               13, 0, 14, 0, 15, 0,           ; slots 0-5
+               10, 1, 11, 1, 12, 1,               13, 1, 14, 1, 15, 1,           ; slots 6-11
                 1, 2,  2, 2,  3, 2,  4, 2,  5, 2,  6, 2,  7, 2,  8, 2,           ; slots 12-19
                 1, 3,  2, 3,  3, 3,  4, 3,  5, 3,  6, 3,  7, 3,  8, 3,           ; slots 20-27
           0, 4, 1, 4,  2, 4,  3, 4,  4, 4,  5, 4,  6, 4,  7, 4,  8, 4,  9, 4,    ; slots 28-37
@@ -144,7 +154,7 @@ Sequencer
         2, 140,
         3, 140,
         4, 140,
-        5, 160,
+        5, 180,
         255, 255
     ]
     
@@ -172,14 +182,11 @@ Sequencer
     ubyte sequence_curr_entity_index = 0
     ubyte[16] sequence_formation_slots = 0
 
-    ubyte sequencer_entity_index = 0
-
-    sub InitSequencer(ubyte entityIndex)
+    sub InitSequencer()
     {
-        sequencer_entity_index = entityIndex
     }
 
-    sub Update() -> ubyte
+    sub Update()
     {
         if (curr_sequence != 0)
         {
@@ -203,7 +210,7 @@ Sequencer
                     sequence_entity -> { 
                         InitEntity(sequence_offset)
                         sequence_curr_entity_index++
-                        sequence_curr_step += 10
+                        sequence_curr_step += 11
                     }
                     sequence_end -> {
                         sequence_curr_step = 3  ; return to just after repeat command
@@ -226,7 +233,6 @@ Sequencer
                 InitLevelStep()
             }
         }
-        return sequencer_entity_index
     }
 
     sub SetEntityFormationPosition(ubyte entityIndex, ubyte slotIndex)
@@ -239,6 +245,8 @@ Sequencer
         uword xPos = positions[entity_data[sequence_pos_x]] as uword
         uword yPos = positions[entity_data[sequence_pos_y]] as uword
 
+        ubyte sequencer_entity_index = Entity.GetIndex()
+
         Entity.Add(sequencer_entity_index, xPos, yPos, entity_data[sequence_entity_id], Entity.state_onpath, entity_data[sequence_path_index])
         if (entity_data[sequence_next_state] == Entity.state_formation)
         {
@@ -248,7 +256,7 @@ Sequencer
             }
             else
             {
-                sequence_formation_slots[sequence_curr_entity_index] = sequence_formation_slots[sequence_curr_entity_index - 1] + entity_data[sequence_formation_inc]
+                sequence_formation_slots[sequence_curr_entity_index] = sequence_formation_slots[sequence_curr_entity_index - entity_data[sequence_formation_prev]] + entity_data[sequence_formation_inc]
             }
             Entity.SetNextState(sequencer_entity_index, entity_data[sequence_next_state], Entity.formation_state_init, sequence_formation_slots[sequence_curr_entity_index])
             SetEntityFormationPosition(sequencer_entity_index, sequence_formation_slots[sequence_curr_entity_index])
@@ -257,7 +265,6 @@ Sequencer
         {
             Entity.SetNextState(sequencer_entity_index, entity_data[sequence_next_state], entity_data[sequence_next_state_data], entity_data[sequence_next_state_data2])
         }
-        sequencer_entity_index++;
     }
 
     sub InitLevelStep()

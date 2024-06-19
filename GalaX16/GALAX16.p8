@@ -20,9 +20,7 @@ zsmkit_lib:
     ; this has to be the first statement to make sure it loads at the specified module address $0830
     %asmbinary "zsmkit-0830.bin"
 
-    const ubyte sequencer_entities_start = 32 
     const ubyte game_data_ram_bank = 2
-    ubyte num_entities = 0
     uword score = 0
     ubyte player_index = 0
     ubyte player_lives = 3
@@ -31,7 +29,7 @@ zsmkit_lib:
     sub start()
     {
         void cx16.screen_mode(8, false)
-
+        ;cx16.VERA_DC_BORDER = 11
         txt.home()
         txt.print(iso:"\nLOADING...")
 
@@ -44,17 +42,15 @@ zsmkit_lib:
         GameData.End()
 
         txt.home()
-        txt.print("galax16   \n")
+        txt.print("          \n")
 
-        ubyte num_sequencer_entities = 0
-        Sequencer.InitSequencer(sequencer_entities_start)
+        Sequencer.InitSequencer()
         Sequencer.StartLevel(0)
         GameData.Begin()
         Entity.InitEntitySlots()
-        Entity.Add(num_entities, 2, 366, GameData.player_ship, Entity.state_player, 0)
-        player_index = num_entities
-        num_entities++
-        Entity.SetBulletEntitiesStart(num_entities)
+        Entity.ResetLists()
+        player_index = Entity.GetIndex()
+        Entity.Add(player_index, 2, 362, GameData.player_ship, Entity.state_player, 0)
         GameData.End()
         bool spawn_player = false
         ubyte rate = 0
@@ -67,42 +63,19 @@ zsmkit_lib:
             if (not InputHandler.IsPaused()); and (rate % 8) == 0)
             {
                 GameData.Begin()
-
-                num_sequencer_entities = Sequencer.Update() - sequencer_entities_start
-                ubyte j
-                for j in 0 to (num_entities + Entity.num_player_bullets) - 1
-                {
-                    if (Entity.UpdateEntity(j))
-                    {
-                        void Entity.UpdateEntity(j)
-                    }
-                }
-                for j in num_entities + Entity.start_enemy_bullets to (num_entities + Entity.start_enemy_bullets + Entity.num_enemy_bullets) - 1
-                {
-                    if (Entity.UpdateEntity(j))
-                    {
-                        void Entity.UpdateEntity(j)
-                    }
-                }
-                for j in sequencer_entities_start to sequencer_entities_start + num_sequencer_entities
-                {
-                    if (Entity.UpdateEntity(j))
-                    {
-                        void Entity.UpdateEntity(j)
-                    }
-                }
+                Sequencer.Update()
+                Entity.Update()
                 GameData.End()
             }
             rate++
 
-            InputHandler.DoScan();
+            InputHandler.DoScan()
 
             txt.home()
-            txt.nl()
-            txt.spc()
             txt.print_uw(score)
             txt.print("0")
-            txt.spc()
+            txt.plot(0, 49)
+            txt.print("lives ")
             txt.print_ub(player_lives)
             
             if (player_lives > 0)
@@ -131,7 +104,8 @@ zsmkit_lib:
                 if (spawn_player == true and Entity.enemy_diving == false)
                 {
                     GameData.Begin()
-                    Entity.Add(player_index, 2, 366, GameData.player_ship, Entity.state_player, 0)
+                    player_index = Entity.GetIndex()
+                    Entity.Add(player_index, 2, 362, GameData.player_ship, Entity.state_player, 0)
                     GameData.End()
                     Entity.enable_enemy_diving = true
                     spawn_player = false
@@ -139,10 +113,7 @@ zsmkit_lib:
             }
             else
             {
-                txt.home()
-                txt.nl()
-                txt.nl()
-                txt.nl()
+                txt.plot(28,25)
                 txt.print("game over")
             }
 
@@ -164,7 +135,7 @@ zsmkit_lib:
     
     sub ScoreHit(ubyte shipIndex)
     {
-        score += GameData.scoreValues[shipIndex>>1]
+        score += GameData.scoreValues[shipIndex]
     }
     
     sub PlayerDied()
@@ -181,7 +152,7 @@ zsmkit_lib:
         {
             Entity.random_chance = 10
         }
-        Sequencer.InitSequencer(sequencer_entities_start)
+        Sequencer.InitSequencer()
         Sequencer.StartLevel(0)
     }
 }

@@ -41,12 +41,12 @@ GameData
     ]
 
     ubyte[6] scoreValues = [
-        10, ; red1
-        20, ; red2
-        30, ; green1
+        50, ; red1
+        30, ; red2
+        25, ; green1
         20, ; green2
         16, ; blue1
-        8   ; blue2
+         8  ; blue2
     ]
 
     ; index, VH flips (0 - no flips, 1 - h flip, 2 - v flip, 3 both flips)
