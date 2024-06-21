@@ -25,7 +25,7 @@ Sequencer
     
     ; data for next state
     const ubyte sequence_next_state         = 7
-    const ubyte sequence_next_state_data    = 8
+    const ubyte sequence_next_state_data    = 8  ; sub_state when next_state != formation
     const ubyte sequence_next_state_data2   = 9
 
     ; if next state is formation
@@ -66,8 +66,8 @@ Sequencer
 
     ubyte[] sequence0 = [
         0,   3, 6,
-        1,   0, 0,   4, 0,  6, 0,  Entity.state_formation, 0,  1, 2,
-        1,   0, 0,  19, 0,  7, 0,  Entity.state_formation, 5, -1, 2,
+        1,   0, 0,   4, 0,  6, 0,  Entity.state_formation,  0,  1, 2,
+        1,   0, 0,  19, 0,  7, 0,  Entity.state_formation,  5, -1, 2,
         2
     ]
 
@@ -92,15 +92,15 @@ Sequencer
 
     ubyte[] sequence4 = [
         0,   4, 6,
-        1,   4, 0,  19, 0,  7, 0,  Entity.state_formation, 37, -1, 2,
-        1,   4, 0,   4, 0,  6, 0,  Entity.state_formation, 28,  1, 2,
+        1,   4, 0,  19, 0,  7, 0,  Entity.state_formation, 36, -1, 2,
+        1,   4, 0,   4, 0,  6, 0,  Entity.state_formation, 29,  1, 2,
         2
     ]
 
     ubyte[] sequence5 = [
         0,   4, 6,
-        1,   5, 0,   4, 0,  6, 0,  Entity.state_formation, 38,  1, 2,
-        1,   5, 0,  19, 0,  7, 0,  Entity.state_formation, 47, -1, 2,
+        1,   5, 0,   4, 0,  6, 0,  Entity.state_formation, 39,  1, 2,
+        1,   5, 0,  19, 0,  7, 0,  Entity.state_formation, 46, -1, 2,
         2
     ]
 
@@ -247,7 +247,7 @@ Sequencer
 
         ubyte sequencer_entity_index = Entity.GetIndex()
 
-        Entity.Add(sequencer_entity_index, xPos, yPos, entity_data[sequence_entity_id], Entity.state_onpath, entity_data[sequence_path_index])
+        Entity.Add(sequencer_entity_index, xPos, yPos, Entity.type_enemy, entity_data[sequence_entity_id], Entity.state_fly_in, Entity.sub_state_on_path, entity_data[sequence_path_index])
         if (entity_data[sequence_next_state] == Entity.state_formation)
         {
             if (sequence_curr_repeat == 0)
@@ -258,7 +258,7 @@ Sequencer
             {
                 sequence_formation_slots[sequence_curr_entity_index] = sequence_formation_slots[sequence_curr_entity_index - entity_data[sequence_formation_prev]] + entity_data[sequence_formation_inc]
             }
-            Entity.SetNextState(sequencer_entity_index, entity_data[sequence_next_state], Entity.formation_state_init, sequence_formation_slots[sequence_curr_entity_index])
+            Entity.SetNextState(sequencer_entity_index, Entity.state_formation, Entity.sub_state_formation_init, sequence_formation_slots[sequence_curr_entity_index])
             SetEntityFormationPosition(sequencer_entity_index, sequence_formation_slots[sequence_curr_entity_index])
         }
         else

@@ -78,9 +78,9 @@ sprites
         pokew(curr_sprite_slot + sprite_position_x, newX)
         pokew(curr_sprite_slot + sprite_position_y, newY)
 
-        uword addr = (sprite_data_vera_addr_shifted2 + (index as uword << 4)) ; calc sprite vera address, but already shifted down 5 (since we only need upper 11 bits)
+        uword @zp addr = (sprite_data_vera_addr_shifted2 + (index as uword << 4)) ; calc sprite vera address, but already shifted down 5 (since we only need upper 11 bits)
         curr_sprite_slot[sprite_address_low] = lsb(addr)
-        ubyte curr_mode = curr_sprite_slot[sprite_address_high_mode] & %10000000
+        ubyte @zp curr_mode = curr_sprite_slot[sprite_address_high_mode] & %10000000
         curr_sprite_slot[sprite_address_high_mode] = msb(addr) | curr_mode
 
         curr_sprite_slot[sprite_collision_mask_zdepth_VHFlips] &= %11111100
@@ -90,9 +90,9 @@ sprites
     sub SetAddress(ubyte slot, ubyte index)
     {
         uword @zp curr_sprite_slot = sprite_data_addr + (slot as uword << 3)
-        uword addr = (sprite_data_vera_addr_shifted2 + (index as uword << 4)) ; calc sprite vera address, but already shifted down 5 (since we only need upper 11 bits)
+        uword @zp addr = (sprite_data_vera_addr_shifted2 + (index as uword << 4)) ; calc sprite vera address, but already shifted down 5 (since we only need upper 11 bits)
         curr_sprite_slot[sprite_address_low] = lsb(addr)
-        ubyte curr_mode = curr_sprite_slot[sprite_address_high_mode] & %10000000
+        ubyte @zp curr_mode = curr_sprite_slot[sprite_address_high_mode] & %10000000
         curr_sprite_slot[sprite_address_high_mode] = msb(addr) | curr_mode
     }
 
@@ -168,7 +168,7 @@ sprites
 
             ; loop over all 128 sprites and set their 8 bytes from memory
 
-            ldx 128
+            ldx #8
 _sprite_update_outer_loop
             ; inner loop from 0 to 7
             ldy #0
@@ -176,13 +176,13 @@ _sprite_update_inner_loop
             lda (p8s_SetFlips.p8v_curr_sprite_slot), y
             sta  cx16.VERA_DATA0
             iny
-            cpy #8
+            cpy #128
             bne _sprite_update_inner_loop
 
             ; add 8 to curr_sprite_slot
             lda  p8s_SetFlips.p8v_curr_sprite_slot
             clc
-            adc  #8
+            adc  #128
             sta  p8s_SetFlips.p8v_curr_sprite_slot
             bcc  +
             inc  p8s_SetFlips.p8v_curr_sprite_slot+1

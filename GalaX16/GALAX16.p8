@@ -50,7 +50,7 @@ zsmkit_lib:
         Entity.InitEntitySlots()
         Entity.ResetLists()
         player_index = Entity.GetIndex()
-        Entity.Add(player_index, 2, 362, GameData.player_ship, Entity.state_player, 0)
+        Entity.Add(player_index, 2, 362, Entity.type_player, GameData.player_ship, Entity.state_none, Entity.sub_state_none, 0)
         GameData.End()
         bool spawn_player = false
         ubyte rate = 0
@@ -60,7 +60,7 @@ zsmkit_lib:
             sprites.Update()
             GameData.End()
 
-            if (not InputHandler.IsPaused()); and (rate % 8) == 0)
+            if (not InputHandler.IsPaused() and (rate % 1) == 0)
             {
                 GameData.Begin()
                 Sequencer.Update()
@@ -105,7 +105,7 @@ zsmkit_lib:
                 {
                     GameData.Begin()
                     player_index = Entity.GetIndex()
-                    Entity.Add(player_index, 2, 362, GameData.player_ship, Entity.state_player, 0)
+                    Entity.Add(player_index, 2, 362, Entity.type_player, GameData.player_ship, Entity.state_none, Entity.sub_state_none, 0)
                     GameData.End()
                     Entity.enable_enemy_diving = true
                     spawn_player = false
