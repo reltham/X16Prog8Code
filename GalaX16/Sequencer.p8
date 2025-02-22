@@ -66,15 +66,15 @@ Sequencer
 
     ubyte[] sequence0 = [
         0,   3, 6,
-        1,   0, 0,   4, 0,  6, 0,  Entity.state_formation,  0,  1, 2,
-        1,   0, 0,  19, 0,  7, 0,  Entity.state_formation,  5, -1, 2,
+        1,   0, 0,   4, 0,  6, 0,  Entity.state_formation,  0,   1, 2,
+        1,   0, 0,  19, 0,  7, 0,  Entity.state_formation,  5, 255, 2,
         2
     ]
 
     ubyte[] sequence1 = [
         0,   3, 6,
-        1,   1, 0,   4, 0,  6, 0,  Entity.state_formation,  6,  1, 2,
-        1,   1, 0,  19, 0,  7, 0,  Entity.state_formation, 11, -1, 2,
+        1,   1, 0,   4, 0,  6, 0,  Entity.state_formation,  6,   1, 2,
+        1,   1, 0,  19, 0,  7, 0,  Entity.state_formation, 11, 255, 2,
         2
     ]
 
@@ -92,15 +92,15 @@ Sequencer
 
     ubyte[] sequence4 = [
         0,   4, 6,
-        1,   4, 0,  19, 0,  7, 0,  Entity.state_formation, 36, -1, 2,
-        1,   4, 0,   4, 0,  6, 0,  Entity.state_formation, 29,  1, 2,
+        1,   4, 0,  19, 0,  7, 0,  Entity.state_formation, 36, 255, 2,
+        1,   4, 0,   4, 0,  6, 0,  Entity.state_formation, 29,   1, 2,
         2
     ]
 
     ubyte[] sequence5 = [
         0,   4, 6,
-        1,   5, 0,   4, 0,  6, 0,  Entity.state_formation, 39,  1, 2,
-        1,   5, 0,  19, 0,  7, 0,  Entity.state_formation, 46, -1, 2,
+        1,   5, 0,   4, 0,  6, 0,  Entity.state_formation, 39,   1, 2,
+        1,   5, 0,  19, 0,  7, 0,  Entity.state_formation, 46, 255, 2,
         2
     ]
 
@@ -180,7 +180,7 @@ Sequencer
     ubyte sequence_num_repeats = 0
     ubyte sequence_curr_repeat = 0
     ubyte sequence_curr_entity_index = 0
-    ubyte[16] sequence_formation_slots = 0
+    ubyte[16] sequence_formation_slots = [0] * 16
 
     sub InitSequencer()
     {

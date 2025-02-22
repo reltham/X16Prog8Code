@@ -14,12 +14,8 @@
 %import GameData
 %zeropage kernalsafe
 
-main $0830
+main
 {
-zsmkit_lib:
-    ; this has to be the first statement to make sure it loads at the specified module address $0830
-    %asmbinary "zsmkit-0830.bin"
-
     const ubyte game_data_ram_bank = 2
     uword score = 0
     ubyte player_index = 0
@@ -116,8 +112,6 @@ zsmkit_lib:
                 txt.plot(28,25)
                 txt.print("game over")
             }
-
-            zsmkit.zsm_fill_buffers()
 
             if (Sounds.GetBeat())
             {

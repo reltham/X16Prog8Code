@@ -1,6 +1,6 @@
 Sounds 
 {
-    const ubyte zsmkit_bank = 1
+    ubyte[255] zsmkit_lowram
     const ubyte zsmdata_bank_start = 3
     
     ; variables set in the zsmkit callback
@@ -69,23 +69,25 @@ Sounds
 
     sub PlaySFX(ubyte index)
     {
-        ubyte saveBank = cx16.getrambank()
-        cx16.rambank(sfx_banks[index])
+        zsmkit.zsm_setbank(sfx_priorities[index], sfx_banks[index])
         zsmkit.zsm_setmem(sfx_priorities[index], sfx_addr[index])
-        cx16.rambank(saveBank)
         zsmkit.zsm_play(sfx_priorities[index])
     }
 
     sub SetupZSMKit()
     {
+        ; load zsmkit in bank 1 and the music starting
+        cx16.rambank(zsmkit.ZSMKitBank)
+        void diskio.load_raw("zsmkit-a000.bin",$A000)
         ; setup zsmkit
-        zsmkit.zsm_init_engine(zsmkit_bank)
+        zsmkit.zsm_init_engine(&zsmkit_lowram)
+
         cx16.rambank(zsmdata_bank_start)
-        ;void diskio.load_raw(iso:"TFVRISESYNC.ZSM", $A000)
+        void diskio.load_raw(iso:"TEST.ZSM", $A000)
         ;void diskio.load_raw(iso:"SHOVEL_S.ZSM", $A000)
         ubyte zcmbank = cx16.getrambank() + 1
-        ;cx16.rambank(zsmdata_bank_start)
-        ;zsmkit.zsm_setmem(0, $A000)
+        zsmkit.zsm_setbank(0, zsmdata_bank_start)
+        zsmkit.zsm_setmem(0, $A000)
 
         ; load 2 zcm's into memory
         cx16.rambank(zcmbank)
@@ -117,8 +119,8 @@ Sounds
         }
 
         ; start the music playing
-        ;zsmkit.zsm_setatten(0, 45)
-        ;zsmkit.zsm_play(0)
+        zsmkit.zsm_setatten(0, 15)
+        zsmkit.zsm_play(0)
         zsmkit.zsm_setcb(0, &zsm_callback_handler)
 
         ; call zsm_tick from irq handler

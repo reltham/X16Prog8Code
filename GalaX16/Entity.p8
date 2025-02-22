@@ -55,7 +55,7 @@ Entity
     const ubyte max_player_bullets = 2
     const ubyte start_enemy_bullets = 8
     const ubyte max_enemy_bullets = 4
-    ubyte[16] bullet_entity_index = 0
+    ubyte[16] bullet_entity_index = [0] * 16
 
     bool enable_formation_moving = false
     byte formation_offset_update = 0
@@ -312,7 +312,7 @@ Entity
         ubyte @zp i
         for i in 3 to 19
         {
-            curr_entity[entity_state_data + i] = -1
+            curr_entity[entity_state_data + i] = 255
         }
         curr_entity[entity_state_next_state] = 0
         curr_entity[entity_state_next_sub_state] = 0
@@ -474,7 +474,7 @@ Entity
             Sounds.PlaySFX(2)
             sprites.SetAddress(curr_entity[entity_sprite_slot], GameData.sprite_indices[GameData.enemy_explosion_start])
             sprites.SetPaletteOffset(curr_entity[entity_sprite_slot], GameData.sprite_palettes[GameData.enemy_explosion_start])
-            curr_entity[entity_type_data] = -1
+            curr_entity[entity_type_data] = 255
             curr_entity[entity_sub_state] = sub_state_exploding
             curr_entity[entity_state_data] = 1
             return false
@@ -586,7 +586,7 @@ Entity
                             curr_entity[entity_state_data + 2] = 0
                             for i in 3 to 19
                             {
-                                curr_entity[entity_state_data + i] = -1
+                                curr_entity[entity_state_data + i] = 255
                             }
                             SetNextState(entityIndex, state_formation, sub_state_formation_init, saved_formation_slot)
                             Sequencer.SetEntityFormationPosition(entityIndex, saved_formation_slot)
@@ -647,9 +647,9 @@ Entity
                     {
                         ubyte stackOffset = entity_state_path_return + (curr_entity[entity_state_path_return_index] * 2)
                         curr_entity[entity_state_path] = curr_entity[stackOffset]
-                        curr_entity[stackOffset] = -1
+                        curr_entity[stackOffset] = 255
                         curr_entity[entity_state_path_offset] = curr_entity[stackOffset + 1]
-                        curr_entity[stackOffset + 1] = -1
+                        curr_entity[stackOffset + 1] = 255
                         curr_entity[entity_state_path_return_index]--
                     }
                 }

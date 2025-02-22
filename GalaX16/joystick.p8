@@ -26,8 +26,8 @@ joystick
 
         ; bits are 0 when a button is down/pressed
         cx16.r1, void = cx16.joystick_get(active_joystick)
-        ;txt.print_uw(cx16.r1)
-        ;txt.print("\n")
+        ;txt.plot(0, 47)
+        ;txt.print_uwbin(cx16.r1, false)
         fire_b = lsb(cx16.r1) & %10000000 == 0
         fire_y = lsb(cx16.r1) & %01000000 == 0
         select = lsb(cx16.r1) & %00100000 == 0
