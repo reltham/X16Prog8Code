@@ -3,11 +3,9 @@ sprites
 {
     const uword sprite_data_addr = $B000
 
-    ; sprites are loaded into VERA memory at $8000
+    ; sprites are loaded into VERA memory at $10000
     ; sprites are 16x16x4bpp, so 128 bytes per sprite
-    const uword sprite_data_vera_addr = $8000
-    const uword sprite_data_vera_addr_shifted = sprite_data_vera_addr >> 5
-    const uword sprite_data_vera_addr_shifted2 = $800
+    const uword sprite_image_data_vera_addr_shifted = $800 ; $10000 >> 5
     const uword sprite_size = 128
     
     const ubyte sprite_address_low = 0
@@ -39,26 +37,30 @@ sprites
 
     sub Init()
     {
-        ; load our sprites into VERA, the palettes are loaded right into the palette registers at $fa20+
+        ; load logo sprites into VERA, palette is loaded right into registers at $1fa00+
+        void diskio.vload_raw(iso:"GALAX16-256X64.BIN", 0, $C000)
+        void diskio.vload_raw(iso:"GALAX16-256X64-PALETTE.BIN", 1, $fA00)
+
+        ; load our sprites into VERA, the palettes are loaded right into the palette registers at $1fB00+
         void diskio.vload_raw(iso:"EXPLOSIONSMISC.BIN", 1, $0000)
-        void diskio.vload_raw(iso:"EXPLOSIONSMISC.PAL", 1, $fa20)
+        void diskio.vload_raw(iso:"EXPLOSIONSMISC.PAL", 1, $fB00)
         void diskio.vload_raw(iso:"REDSHIPS.BIN", 1, $2000)
-        void diskio.vload_raw(iso:"REDSHIPS.PAL", 1, $fa40)
+        void diskio.vload_raw(iso:"REDSHIPS.PAL", 1, $fB20)
         void diskio.vload_raw(iso:"GREENSHIPS.BIN", 1, $4000)
-        void diskio.vload_raw(iso:"GREENSHIPS.PAL", 1, $fa60)
+        void diskio.vload_raw(iso:"GREENSHIPS.PAL", 1, $fB40)
         void diskio.vload_raw(iso:"BLUESHIPS.BIN", 1, $6000)
-        void diskio.vload_raw(iso:"BLUESHIPS.PAL", 1, $fa80)
+        void diskio.vload_raw(iso:"BLUESHIPS.PAL", 1, $fB60)
 
         ; enable sprites
         cx16.VERA_DC_VIDEO = cx16.VERA_DC_VIDEO | %01000000
 
         ; init sprite slots
-        cx16.r1 = sprite_data_vera_addr_shifted2
+        cx16.r1 = sprite_image_data_vera_addr_shifted
         cx16.r1H |= mode
         cx16.r2L = collision_mask << 4 | zdepth_middle << 2 | flips_none
         cx16.r2H = size_32 << 6 | size_32 << 4 | palette_offset 
         uword @zp curr_sprite_slot = sprite_data_addr;
-        repeat 128
+        repeat 124
         {
             curr_sprite_slot[sprite_address_low] = cx16.r1L
             curr_sprite_slot[sprite_address_high_mode] = cx16.r1H
@@ -67,6 +69,26 @@ sprites
             curr_sprite_slot[sprite_collision_mask_zdepth_VHFlips] = cx16.r2L
             curr_sprite_slot[sprite_width_height_palette_offset] = cx16.r2H
             curr_sprite_slot += 8
+        }
+
+        ; put logo sprites in last 4 slots
+        cx16.r1 = $600
+        cx16.r1H |= bpp_8
+        cx16.r2L = collision_mask << 4 | zdepth_back << 2 | flips_none
+        cx16.r2H = size_64 << 6 | size_64 << 4 | 0
+        uword posX = 512-256
+        uword posY = -64 as uword
+        repeat 4
+        {
+            curr_sprite_slot[sprite_address_low] = cx16.r1L
+            curr_sprite_slot[sprite_address_high_mode] = cx16.r1H
+            pokew(curr_sprite_slot + sprite_position_x, posX)
+            pokew(curr_sprite_slot + sprite_position_y, posY)
+            curr_sprite_slot[sprite_collision_mask_zdepth_VHFlips] = cx16.r2L
+            curr_sprite_slot[sprite_width_height_palette_offset] = cx16.r2H
+            curr_sprite_slot += 8
+            cx16.r1 += $80
+            posX += 64
         }
         Update()
     }
@@ -78,7 +100,7 @@ sprites
         pokew(curr_sprite_slot + sprite_position_x, newX)
         pokew(curr_sprite_slot + sprite_position_y, newY)
 
-        uword @zp addr = (sprite_data_vera_addr_shifted2 + (index as uword << 4)) ; calc sprite vera address, but already shifted down 5 (since we only need upper 11 bits)
+        uword @zp addr = (sprite_image_data_vera_addr_shifted + (index as uword << 4)) ; calc sprite vera address, but already shifted down 5 (since we only need upper 11 bits)
         curr_sprite_slot[sprite_address_low] = lsb(addr)
         ubyte @zp curr_mode = curr_sprite_slot[sprite_address_high_mode] & %10000000
         curr_sprite_slot[sprite_address_high_mode] = msb(addr) | curr_mode
@@ -90,7 +112,7 @@ sprites
     sub SetAddress(ubyte slot, ubyte index)
     {
         uword @zp curr_sprite_slot = sprite_data_addr + (slot as uword << 3)
-        uword @zp addr = (sprite_data_vera_addr_shifted2 + (index as uword << 4)) ; calc sprite vera address, but already shifted down 5 (since we only need upper 11 bits)
+        uword @zp addr = (sprite_image_data_vera_addr_shifted + (index as uword << 4)) ; calc sprite vera address, but already shifted down 5 (since we only need upper 11 bits)
         curr_sprite_slot[sprite_address_low] = lsb(addr)
         ubyte @zp curr_mode = curr_sprite_slot[sprite_address_high_mode] & %10000000
         curr_sprite_slot[sprite_address_high_mode] = msb(addr) | curr_mode

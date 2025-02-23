@@ -1,6 +1,5 @@
 InputHandler
 {
-    bool paused = false
     bool oldup = false
     bool olddown = false
     bool oldleft = false
@@ -15,8 +14,9 @@ InputHandler
     bool oldfire_l = false
     bool oldfire_r = false
 
-    uword player_offset = 248
     bool fire_bullet = false
+    bool pressed_start = false
+    bool pressed_select = false
 
     sub Init()
     {
@@ -24,12 +24,7 @@ InputHandler
         joystick.active_joystick = 1
         joystick.clear()
     }
-    
-    sub IsPaused() -> bool
-    {
-        return paused
-    }
-    
+
     sub DoScan()
     {
         joystick.scan()
@@ -48,55 +43,27 @@ InputHandler
         bool newfire_r = joystick.fire_r
         if (newstart != oldstart and newstart == true)
         {
-            zsmkit.zcm_stop()
-            if (paused)
-            {
-                zsmkit.zsm_play(0)
-                paused = false
-                zsmkit.zcm_play(1, 8)
-            }
-            else
-            {
-                zsmkit.zsm_stop(0)
-                paused = true
-                zsmkit.zcm_play(0, 8)
-            }
+            pressed_start = true
         }
         if (newselect != oldselect and newselect == true)
         {
-            txt.print("\npressed select\n")
+            pressed_select = true
         }
         if (newup != oldup and newup == true)
         {
-            Sounds.PlaySFX(0)
         }
         if (newdown != olddown and newdown == true)
         {
-            Sounds.PlaySFX(1)
         }
-        if (newleft == true)
+        if (newleft != oldleft and newleft == true)
         {
-            player_offset -= 4
-            if (player_offset < 4)
-            {
-                player_offset = 4
-            }
         }
-        if (newright == true)
+        if (newright != oldright and newright == true)
         {
-            player_offset += 4
-            if (player_offset > 476)
-            {
-                player_offset = 476
-            }
         }
         if (newfire_a != oldfire_a and newfire_a == true)
         {
             fire_bullet = true
-        }
-        else
-        {
-            fire_bullet = false
         }
         if (newfire_b != oldfire_b and newfire_b == true)
         {

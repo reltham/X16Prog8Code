@@ -29,15 +29,15 @@ GameData
     ]
 
     ubyte[] sprite_palettes = [
-        1, 1, 1, 1, 1, ; explosion 1
-        1, 1, 1,       ; rocks
-        1, 1, 1, 1, 1, ; explosion 2
-        1, 1, 1,       ; yellow space station
-        2,             ; player ship
-        2,             ; 4 spike thing
-        3,             ; player missle
-        3,             ; enemy missle
-        4, 4           ; blue space station
+        8, 8, 8, 8, 8, ; explosion 1
+        8, 8, 8,       ; rocks
+        8, 8, 8, 8, 8, ; explosion 2
+        8, 8, 8,       ; yellow space station
+        9,             ; player ship
+        9,             ; 4 spike thing
+        10,            ; player missle
+        10,            ; enemy missle
+        11, 11         ; blue space station
     ]
 
     ubyte[6] scoreValues = [
@@ -86,12 +86,12 @@ GameData
         56  ; blue2
     ]
     ubyte[] ship_sprite_palettes = [
-        2, ; red1
-        2, ; red2
-        3, ; green1
-        3, ; green2
-        4, ; blue1
-        4  ; blue2
+         9, ; red1
+         9, ; red2
+        10, ; green1
+        10, ; green2
+        11, ; blue1
+        11  ; blue2
     ]
 
     sub GetShipSpriteOffset(ubyte shipIndex) -> ubyte

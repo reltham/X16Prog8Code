@@ -73,6 +73,8 @@ Entity
     ; this changes each time you clear a level to make it more likely an enemy will dive 
     ubyte random_chance = 250
 
+    uword player_offset = 248
+
     ubyte[128] FreeIndices
     ubyte[128] UsedIndices
     ubyte @zp NextFree
@@ -268,7 +270,7 @@ Entity
         {
             Sounds.PlaySFX(4)
             GameData.Begin()
-            Add(GetIndex(), InputHandler.player_offset, 340, type_player_bullet, GameData.player_bullet, state_none, sub_state_none, 0)
+            Add(GetIndex(), player_offset, 340, type_player_bullet, GameData.player_bullet, state_none, sub_state_none, 0)
             GameData.End()
         }
     }
@@ -413,7 +415,7 @@ Entity
         }
         else if (curr_entity[entity_type] == type_player and curr_entity[entity_sub_state] == sub_state_none)
         {
-            sprites.SetX(curr_entity[entity_sprite_slot], InputHandler.player_offset)
+            sprites.SetX(curr_entity[entity_sprite_slot], player_offset)
             bool kill_player = false
             if (enemy_diving == true)
             {

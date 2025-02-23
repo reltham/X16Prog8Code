@@ -120,7 +120,6 @@ Sounds
 
         ; start the music playing
         zsmkit.zsm_setatten(0, 15)
-        zsmkit.zsm_play(0)
         zsmkit.zsm_setcb(0, &zsm_callback_handler)
 
         ; call zsm_tick from irq handler
