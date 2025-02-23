@@ -157,16 +157,31 @@ Sequencer
         5, 180,
         255, 255
     ]
-    
+
     ubyte[] level_set1 = [
-        1, 30,
-        0, 1,
+        1, 140,
+        0, 140,
+        3, 140,
+        2, 140,
+        5, 140,
+        4, 180,
+        255, 255
+    ]
+
+    ubyte[] level_set2 = [
+        5, 140,
+        4, 140,
+        3, 140,
+        2, 140,
+        1, 140,
+        0, 180,
         255, 255
     ]
     
     uword[] levels = [
-         &level_set0, &level_set1
+         &level_set0, &level_set1, &level_set2
     ]
+    ubyte max_level = 2
     
     uword curr_level = 0
     ubyte level_set_curr_step = 0
@@ -287,6 +302,10 @@ Sequencer
 
     sub StartLevel(ubyte level)
     {
+        if (level > max_level)
+        {
+            level = 0
+        }
         curr_level = levels[level]
         level_set_curr_step = 0
         InitLevelStep()

@@ -23,6 +23,7 @@ main
     ubyte player_lives = 3
     ubyte player_died = 0
     bool paused = false
+    ubyte level = 0
 
     sub start()
     {
@@ -79,7 +80,7 @@ main
 
         ; start the game
         Sequencer.InitSequencer()
-        Sequencer.StartLevel(0)
+        Sequencer.StartLevel(level)
         GameData.Begin()
         Entity.InitEntitySlots()
         Entity.ResetLists()
@@ -228,6 +229,7 @@ main
             Entity.random_chance = 10
         }
         Sequencer.InitSequencer()
-        Sequencer.StartLevel(0)
+        level++
+        Sequencer.StartLevel(level)
     }
 }
