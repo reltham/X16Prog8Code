@@ -18,6 +18,7 @@ main
 {
     const ubyte game_data_ram_bank = 2
     uword score = 0
+    uword extra_life_tracker = 0
     ubyte player_index = 0
     ubyte player_lives = 3
     ubyte player_died = 0
@@ -122,7 +123,7 @@ main
                     zsmkit.zcm_play(0, 8)
                 }
             }
-            if (InputHandler.newleft == true)
+            if (InputHandler.oldleft == true)
             {
                 Entity.player_offset -= 4
                 if (Entity.player_offset < 4)
@@ -130,7 +131,7 @@ main
                     Entity.player_offset = 4
                 }
             }
-            if (InputHandler.newright == true)
+            if (InputHandler.oldright == true)
             {
                 Entity.player_offset += 4
                 if (Entity.player_offset > 476)
@@ -204,6 +205,12 @@ main
     sub ScoreHit(ubyte shipIndex)
     {
         score += GameData.scoreValues[shipIndex]
+        extra_life_tracker += GameData.scoreValues[shipIndex]
+        if (extra_life_tracker > 5000)
+        {
+            extra_life_tracker -= 5000
+            player_lives++
+        }
     }
     
     sub PlayerDied()
