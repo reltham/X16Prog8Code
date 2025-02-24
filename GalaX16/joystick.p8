@@ -25,7 +25,17 @@ joystick
        ;               SNES | A | X | L | R | 1 | 1 | 1 | 1 |
 
         ; bits are 0 when a button is down/pressed
-        cx16.r1, void = cx16.joystick_get(active_joystick)
+        if (active_joystick < 2)
+        {
+            cx16.r1, void = cx16.joystick_get(0)
+            uword temp = $ff
+            temp, void = cx16.joystick_get(1)
+            cx16.r1 &= temp
+        }
+        else
+        {
+            cx16.r1, void = cx16.joystick_get(active_joystick)
+        }
         ;txt.plot(0, 47)
         ;txt.print_uwbin(cx16.r1, false)
         fire_b = lsb(cx16.r1) & %10000000 == 0

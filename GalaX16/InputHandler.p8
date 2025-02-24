@@ -21,7 +21,7 @@ InputHandler
     sub Init()
     {
         ; init joystick (0 = keyboard)
-        joystick.active_joystick = 1
+        joystick.active_joystick = 0
         joystick.clear()
     }
 
