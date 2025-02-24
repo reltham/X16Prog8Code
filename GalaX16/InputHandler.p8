@@ -49,6 +49,7 @@ InputHandler
         {
             pressed_select = true
         }
+        /*
         if (newup != oldup and newup == true)
         {
         }
@@ -61,6 +62,7 @@ InputHandler
         if (newright != oldright and newright == true)
         {
         }
+        */
         if (newfire_a != oldfire_a and newfire_a == true)
         {
             fire_bullet = true

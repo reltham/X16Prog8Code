@@ -16,12 +16,24 @@
 
 main
 {
+    const ubyte gamestate_title = 1
+    const ubyte gamestate_init = 2
+    const ubyte gamestate_starting = 3
+    const ubyte gamestate_ingame = 4
+    const ubyte gamestate_player_died = 5
+    const ubyte gamestate_game_over = 6
+
     const ubyte game_data_ram_bank = 2
+    ubyte current_gamestate = gamestate_title
     uword score = 0
     uword extra_life_tracker = 0
     ubyte player_index = 0
     ubyte player_lives = 3
     ubyte player_died = 0
+    ubyte game_over = 0
+    ubyte start_countdown = 0
+    bool was_diving = false
+    bool start_the_level = false
     bool paused = false
     ubyte level = 0
 
@@ -33,7 +45,6 @@ main
         txt.print(iso:"\nLOADING...")
 
         Sounds.SetupZSMKit()
-
         InputHandler.Init()
         GameData.Begin()
         SpritePathTables.Init()
@@ -43,104 +54,195 @@ main
         txt.home()
         txt.print("          \n")
 
-        ; display logo
-        GameData.Begin()
-        sprites.SetPosition(124, 128 as uword, 128 as uword)
-        sprites.SetPosition(125, 192 as uword, 128 as uword)
-        sprites.SetPosition(126, 256 as uword, 128 as uword)
-        sprites.SetPosition(127, 320 as uword, 128 as uword)
-        GameData.End()
-        txt.plot(26,25)
-        txt.print(iso:"PRESS START!")
-
-        ; wait for start press
-        repeat
-        {
-            GameData.Begin()
-            sprites.Update()
-            GameData.End()
-            InputHandler.DoScan()
-            if (InputHandler.pressed_start == true)
-            {
-                InputHandler.pressed_start = false;
-                ; hide logo
-                GameData.Begin()
-                sprites.SetPosition(124, -64 as uword, -64 as uword)
-                sprites.SetPosition(125, -64 as uword, -64 as uword)
-                sprites.SetPosition(126, -64 as uword, -64 as uword)
-                sprites.SetPosition(127, -64 as uword, -64 as uword)
-                sprites.Update()
-                GameData.End()
-                txt.plot(26,25)
-                txt.print(iso:"            ")
-                break;
-            }
-            sys.waitvsync()
-        }
-
-        ; start the game
-        Sequencer.InitSequencer()
-        Sequencer.StartLevel(level)
-        GameData.Begin()
-        Entity.InitEntitySlots()
-        Entity.ResetLists()
-        player_index = Entity.GetIndex()
-        Entity.Add(player_index, 2, 362, Entity.type_player, GameData.player_ship, Entity.state_none, Entity.sub_state_none, 0)
-        GameData.End()
-        zsmkit.zsm_play(0)
         bool spawn_player = false
-        ubyte rate = 0
         InputHandler.pressed_start = false;
         repeat
         {
+            if (paused == false)
+            {
+                when current_gamestate
+                {
+                    gamestate_title -> {
+                        ; display logo
+                        GameData.Begin()
+                        sprites.SetPosition(124, 128 as uword, 128 as uword)
+                        sprites.SetPosition(125, 192 as uword, 128 as uword)
+                        sprites.SetPosition(126, 256 as uword, 128 as uword)
+                        sprites.SetPosition(127, 320 as uword, 128 as uword)
+                        GameData.End()
+                        txt.plot(26,25)
+                        txt.print(iso:"PRESS START!")
+    
+                        ; wait for start press
+                        InputHandler.DoScan()
+                        if (InputHandler.pressed_start == true)
+                        {
+                            InputHandler.pressed_start = false;
+                            current_gamestate = gamestate_init
+                        }
+                    }
+                    gamestate_init -> {
+                        ; hide logo
+                        GameData.Begin()
+                        sprites.SetPosition(124, -64 as uword, -64 as uword)
+                        sprites.SetPosition(125, -64 as uword, -64 as uword)
+                        sprites.SetPosition(126, -64 as uword, -64 as uword)
+                        sprites.SetPosition(127, -64 as uword, -64 as uword)
+                        GameData.End()
+                        txt.plot(26,25)
+                        txt.print(iso:"            ")
+    
+                        level = 0
+                        player_lives = 3
+                        score = 0
+    
+                        ; clear old score
+                        txt.home()
+                        txt.print("        ")
+    
+                        ; start the game
+                        start_the_level = true
+                        GameData.Begin()
+                        sprites.ResetSpriteSlots()
+                        Entity.InitEntitySlots()
+                        Entity.ResetLists()
+                        GameData.End()
+                        start_countdown = 90
+                        zsmkit.zsm_play(0)
+                        Sounds.PlaySFX(0)
+                        current_gamestate = gamestate_starting
+                    }
+                    gamestate_starting -> {
+                        if (Entity.enemy_diving == false)
+                        {
+                            if (start_countdown == 90)
+                            {
+                                txt.plot(28,25)
+                                txt.print("get ready!")
+                                GameData.Begin()
+                                player_index = Entity.GetIndex()
+                                Entity.Add(player_index, 248, 362, Entity.type_player, GameData.player_ship, Entity.state_none, Entity.sub_state_none, 0)
+                                GameData.End()
+                                Entity.player_offset = 248
+                            }
+                            if (start_countdown == 1)
+                            {
+                                txt.plot(28,25)
+                                txt.print("          ")
+                            }
+                            start_countdown--
+                            if (start_countdown == 0)
+                            {
+                                if (was_diving == true)
+                                {
+                                    was_diving = false
+                                    Entity.enable_enemy_diving = true
+                                }
+                                if (start_the_level == true)
+                                {
+                                    start_the_level = false
+                                    Sequencer.StartLevel(level)
+                                }
+                                current_gamestate = gamestate_ingame
+                            }
+                        }
+                        GameData.Begin()
+                        Sequencer.Update()
+                        Entity.Update()
+                        GameData.End()
+                    }
+                    gamestate_ingame -> {
+                        GameData.Begin()
+                        Sequencer.Update()
+                        Entity.Update()
+                        GameData.End()
+    
+                        InputHandler.DoScan()
+                        if (InputHandler.pressed_start == true)
+                        {
+                            InputHandler.pressed_start = false;
+                            zsmkit.zcm_stop()
+                            if (paused)
+                            {
+                                zsmkit.zsm_play(0)
+                                paused = false
+                                zsmkit.zcm_play(1, 8)
+                            }
+                            else
+                            {
+                                zsmkit.zsm_stop(0)
+                                paused = true
+                                zsmkit.zcm_play(0, 8)
+                            }
+                        }
+                        if (InputHandler.oldleft == true)
+                        {
+                            Entity.player_offset -= 4
+                            if (Entity.player_offset < 4)
+                            {
+                                Entity.player_offset = 4
+                            }
+                        }
+                        if (InputHandler.oldright == true)
+                        {
+                            Entity.player_offset += 4
+                            if (Entity.player_offset > 476)
+                            {
+                                Entity.player_offset = 476
+                            }
+                        }
+                        if (InputHandler.fire_bullet == true and spawn_player == false)
+                        {
+                            InputHandler.fire_bullet = false
+                            Entity.AddPlayerBullet()
+                        }
+                    }
+                    gamestate_player_died -> {
+                        if (player_lives > 0)
+                        {
+                            player_lives--
+                        }
+                        if (player_lives > 0)
+                        {
+                            start_countdown = 90
+                            current_gamestate = gamestate_starting
+                        }
+                        else
+                        {
+                            game_over = 180
+                            was_diving = false
+                            current_gamestate = gamestate_game_over
+                        }
+                    }
+                    gamestate_game_over -> {
+                        if (game_over == 180)
+                        {
+                            txt.plot(28,25)
+                            txt.print("game over")
+                            zsmkit.zsm_stop(0)
+                            zsmkit.zsm_rewind(0)
+                        }
+                        GameData.Begin()
+                        Sequencer.Update()
+                        Entity.Update()
+                        GameData.End()
+                        game_over--
+                        if (game_over == 0)
+                        {
+                            txt.plot(28,25)
+                            txt.print("         ")
+                            GameData.Begin()
+                            sprites.ResetSpriteSlots()
+                            GameData.End()
+                            current_gamestate = gamestate_title
+                        }
+                    }
+                }
+            }
+
             GameData.Begin()
             sprites.Update()
             GameData.End()
-
-            if (paused == false and (rate % 1) == 0)
-            {
-                GameData.Begin()
-                Sequencer.Update()
-                Entity.Update()
-                GameData.End()
-            }
-            rate++
-
-            InputHandler.DoScan()
-            if (InputHandler.pressed_start == true)
-            {
-                InputHandler.pressed_start = false;
-                zsmkit.zcm_stop()
-                if (paused)
-                {
-                    zsmkit.zsm_play(0)
-                    paused = false
-                    zsmkit.zcm_play(1, 8)
-                }
-                else
-                {
-                    zsmkit.zsm_stop(0)
-                    paused = true
-                    zsmkit.zcm_play(0, 8)
-                }
-            }
-            if (InputHandler.oldleft == true)
-            {
-                Entity.player_offset -= 4
-                if (Entity.player_offset < 4)
-                {
-                    Entity.player_offset = 4
-                }
-            }
-            if (InputHandler.oldright == true)
-            {
-                Entity.player_offset += 4
-                if (Entity.player_offset > 476)
-                {
-                    Entity.player_offset = 476
-                }
-            }
-
 
             txt.home()
             txt.print_uw(score)
@@ -148,46 +250,9 @@ main
             txt.plot(0, 49)
             txt.print("lives ")
             txt.print_ub(player_lives)
-            
-            if (player_lives > 0)
-            {
-                if (InputHandler.fire_bullet == true and player_died == 0 and spawn_player == false)
-                {
-                    InputHandler.fire_bullet = false
-                    Entity.AddPlayerBullet()
-                }
-
-                if (player_died > 0)
-                {
-                    player_died--
-                    if (player_died == 1)
-                    {
-                        if (player_lives > 0)
-                        {
-                            player_lives--
-                        }
-                        if (player_lives > 0)
-                        {
-                            spawn_player = true
-                        }
-                    }
-                }
-
-                if (spawn_player == true and Entity.enemy_diving == false)
-                {
-                    GameData.Begin()
-                    player_index = Entity.GetIndex()
-                    Entity.Add(player_index, 2, 362, Entity.type_player, GameData.player_ship, Entity.state_none, Entity.sub_state_none, 0)
-                    GameData.End()
-                    Entity.enable_enemy_diving = true
-                    spawn_player = false
-                }
-            }
-            else
-            {
-                txt.plot(28,25)
-                txt.print("game over")
-            }
+            txt.plot(55, 49)
+            txt.print("level ")
+            txt.print_ub(level)
 
             if (Sounds.GetBeat())
             {
@@ -216,7 +281,11 @@ main
     
     sub PlayerDied()
     {
-        player_died = 30
+        if (Entity.enable_enemy_diving == true)
+        {
+            was_diving = true
+        }
+        current_gamestate = gamestate_player_died
     }
 
     sub EnemiesCleared()
@@ -228,7 +297,6 @@ main
         {
             Entity.random_chance = 10
         }
-        Sequencer.InitSequencer()
         level++
         Sequencer.StartLevel(level)
     }

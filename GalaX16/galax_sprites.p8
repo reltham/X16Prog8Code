@@ -55,6 +55,13 @@ sprites
         cx16.VERA_DC_VIDEO = cx16.VERA_DC_VIDEO | %01000000
 
         ; init sprite slots
+        ResetSpriteSlots()
+
+        Update()
+    }
+    
+    sub ResetSpriteSlots()
+    {
         cx16.r1 = sprite_image_data_vera_addr_shifted
         cx16.r1H |= mode
         cx16.r2L = collision_mask << 4 | zdepth_middle << 2 | flips_none
@@ -76,21 +83,17 @@ sprites
         cx16.r1H |= bpp_8
         cx16.r2L = collision_mask << 4 | zdepth_back << 2 | flips_none
         cx16.r2H = size_64 << 6 | size_64 << 4 | 0
-        uword posX = 512-256
-        uword posY = -64 as uword
         repeat 4
         {
             curr_sprite_slot[sprite_address_low] = cx16.r1L
             curr_sprite_slot[sprite_address_high_mode] = cx16.r1H
-            pokew(curr_sprite_slot + sprite_position_x, posX)
-            pokew(curr_sprite_slot + sprite_position_y, posY)
+            pokew(curr_sprite_slot + sprite_position_x, -64 as uword)
+            pokew(curr_sprite_slot + sprite_position_y, -64 as uword)
             curr_sprite_slot[sprite_collision_mask_zdepth_VHFlips] = cx16.r2L
             curr_sprite_slot[sprite_width_height_palette_offset] = cx16.r2H
             curr_sprite_slot += 8
             cx16.r1 += $80
-            posX += 64
         }
-        Update()
     }
 
     sub SetPosAddrFlips(ubyte slot, uword newX, uword newY, ubyte index, ubyte flips)

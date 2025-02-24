@@ -67,7 +67,6 @@ Entity
     bool enable_enemy_diving = false
     bool enemy_diving = false
     ubyte enemy_diving_index = 0
-    ubyte enemy_diving_formation_slot = 0
     ubyte enemy_bullet_fired = 0
     
     ; this changes each time you clear a level to make it more likely an enemy will dive 
@@ -732,5 +731,7 @@ Entity
             curr_entity[entity_state] = state_none
             curr_entity += 32
         }
+        num_active_enemies = 0
+        random_chance = 250
     }
 }

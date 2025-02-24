@@ -181,7 +181,7 @@ Sequencer
     uword[] levels = [
          &level_set0, &level_set1, &level_set2
     ]
-    ubyte max_level = 2
+    const ubyte max_level = 2
     
     uword curr_level = 0
     ubyte level_set_curr_step = 0
@@ -196,10 +196,6 @@ Sequencer
     ubyte sequence_curr_repeat = 0
     ubyte sequence_curr_entity_index = 0
     ubyte[16] sequence_formation_slots = [0] * 16
-
-    sub InitSequencer()
-    {
-    }
 
     sub Update()
     {
