@@ -17,7 +17,8 @@ Entity
     ; next state defaults to none (0) meaning the entity terminates at end of path
     const ubyte entity_state_next_state = 25        ; this state will be set when the state the entity is on ends
     const ubyte entity_state_next_sub_state = 26    ;
-    const ubyte entity_state_next_state_data = 27   ; state data size varies by type, max 5 bytes
+    const ubyte entity_state_next_state_data = 27   ; 
+    const ubyte entity_state_next_state_data2 = 28  ; state data2 size varies by type, max 4 bytes
 
     const ubyte type_none = 0
     const ubyte type_enemy = 1
@@ -29,9 +30,10 @@ Entity
     
     const ubyte state_none = 0
     const ubyte state_fly_in = 1            ; enemy flying in (on path or fly to)
-    const ubyte state_formation = 2         ; enemy in formation 
-    const ubyte state_diving = 3            ; enemy diving
-    const ubyte state_fly_by = 4            ; enemy fly in and out 
+    const ubyte state_formation = 2         ; enemy in formation
+    const ubyte state_start_dive = 3        ; enemy starts diving 
+    const ubyte state_diving = 4            ; enemy diving
+    const ubyte state_fly_by = 5            ; enemy fly in and out 
 
     const ubyte sub_state_none = 0
     const ubyte sub_state_on_path = 1
@@ -348,19 +350,20 @@ Entity
         sprites.SetPosition(curr_entity[entity_sprite_slot], xPos as uword, yPos as uword)
     }
 
-    sub SetNextState(ubyte entityIndex, ubyte nextState, ubyte nextSubState, ubyte nextStateData)
+    sub SetNextState(ubyte entityIndex, ubyte nextState, ubyte nextSubState, ubyte nextStateData, ubyte nextStateData2)
     {
         uword @zp curr_entity = entities_addr + (entityIndex as uword << 5)
         curr_entity[entity_state_next_state] = nextState
         curr_entity[entity_state_next_sub_state] = nextSubState
         curr_entity[entity_state_next_state_data] = nextStateData
+        curr_entity[entity_state_next_state_data2] = nextStateData2
     }
 
     sub SetPosition(ubyte entityIndex, uword xPos, uword yPos)
     {
         uword @zp curr_entity = entities_addr + (entityIndex as uword << 5)
-        pokew(curr_entity + entity_state_next_state_data + 1, xPos)
-        pokew(curr_entity + entity_state_next_state_data + 3, yPos)
+        pokew(curr_entity + entity_state_next_state_data2, xPos)
+        pokew(curr_entity + entity_state_next_state_data2 + 2, yPos)
     }
 
     sub UpdateSpriteSlot(ubyte entityIndex, word xPos, word yPos, ubyte spriteIndex, ubyte spriteFlips)
@@ -578,19 +581,18 @@ Entity
                         random_value = math.rnd()
                         if (random_value < 16)
                         {
-                            ubyte saved_formation_slot = curr_entity[entity_state_data]
+                            ubyte formation_slot = curr_entity[entity_state_data]
 
-                            curr_entity[entity_state] = state_diving 
+                            curr_entity[entity_state] = state_start_dive 
                             curr_entity[entity_sub_state] = sub_state_on_path
-                            curr_entity[entity_state_data] = random_value >> 2
+                            curr_entity[entity_state_data] = random_value & 1
                             curr_entity[entity_state_data + 1] = 0
                             curr_entity[entity_state_data + 2] = 0
                             for i in 3 to 19
                             {
                                 curr_entity[entity_state_data + i] = 255
                             }
-                            SetNextState(entityIndex, state_formation, sub_state_formation_init, saved_formation_slot)
-                            Sequencer.SetEntityFormationPosition(entityIndex, saved_formation_slot)
+                            SetNextState(entityIndex, state_diving, sub_state_on_path, 2 + (random_value >> 2), formation_slot)
                             enemy_diving_index = entityIndex
                             enemy_diving = true
                             enemy_bullet_fired = 30
@@ -628,6 +630,13 @@ Entity
             {
                 if (pathEntry[1] == 0)
                 {
+                    ubyte saved_formation_slot = 255
+                    if (curr_entity[entity_state] == state_start_dive)
+                    {
+                        saved_formation_slot = curr_entity[entity_state_next_state_data2]
+                        curr_entity[entity_state_next_state_data2] = 0
+                    }
+
                     curr_entity[entity_state] = curr_entity[entity_state_next_state]
                     curr_entity[entity_sub_state] = curr_entity[entity_state_next_sub_state]
                     curr_entity[entity_state_data] = curr_entity[entity_state_next_state_data]
@@ -638,7 +647,12 @@ Entity
                         {
                             curr_entity[entity_state_data + i] = curr_entity[entity_state_next_state_data + i]
                         }
-                        ;curr_entity[entity_state_data + 5] = -1
+                    }
+
+                    if (curr_entity[entity_state] == state_diving)
+                    {
+                        SetNextState(entityIndex, state_formation, sub_state_formation_init, saved_formation_slot, 0)
+                        Sequencer.SetEntityFormationPosition(entityIndex, saved_formation_slot)
                     }
                 }
                 else

@@ -30,7 +30,7 @@ Sequencer
 
     ; if next state is formation
     const ubyte sequence_formation_slot = 8     ; which formation slot (indexes into array of slot positions
-    const ubyte sequence_formation_inc  = 9     ; when doing multiple loops, this increments the slot index per loop, must be at least 1
+    const ubyte sequence_formation_inc  = 9     ; when doing multiple loops, this increments the slot index per loop, must be at least 1 (255 = -1)
     const ubyte sequence_formation_prev = 10    ; for this entity, what's the offset to the previous entity 
     
     ; for repeat command
@@ -269,12 +269,12 @@ Sequencer
             {
                 sequence_formation_slots[sequence_curr_entity_index] = sequence_formation_slots[sequence_curr_entity_index - entity_data[sequence_formation_prev]] + entity_data[sequence_formation_inc]
             }
-            Entity.SetNextState(sequencer_entity_index, Entity.state_formation, Entity.sub_state_formation_init, sequence_formation_slots[sequence_curr_entity_index])
+            Entity.SetNextState(sequencer_entity_index, Entity.state_formation, Entity.sub_state_formation_init, sequence_formation_slots[sequence_curr_entity_index], 0)
             SetEntityFormationPosition(sequencer_entity_index, sequence_formation_slots[sequence_curr_entity_index])
         }
         else
         {
-            Entity.SetNextState(sequencer_entity_index, entity_data[sequence_next_state], entity_data[sequence_next_state_data], entity_data[sequence_next_state_data2])
+            Entity.SetNextState(sequencer_entity_index, entity_data[sequence_next_state], entity_data[sequence_next_state_data], entity_data[sequence_next_state_data2], 0)
         }
     }
 
