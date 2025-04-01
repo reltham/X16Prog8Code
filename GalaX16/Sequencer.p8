@@ -66,41 +66,41 @@ Sequencer
 
     ubyte[] sequence0 = [
         0,   3, 6,
-        1,   0, 0,   4, 0,  6, 0,  Entity.state_formation,  0,   1, 2,
-        1,   0, 0,  19, 0,  7, 0,  Entity.state_formation,  5, 255, 2,
+        1,   0, 0,   4, 0,  10, 0,  Entity.state_formation,  0,   1, 2,
+        1,   0, 0,  19, 0,  11, 0,  Entity.state_formation,  5, 255, 2,
         2
     ]
 
     ubyte[] sequence1 = [
         0,   3, 6,
-        1,   1, 0,   4, 0,  6, 0,  Entity.state_formation,  6,   1, 2,
-        1,   1, 0,  19, 0,  7, 0,  Entity.state_formation, 11, 255, 2,
+        1,   1, 0,   4, 0,  10, 0,  Entity.state_formation,  6,   1, 2,
+        1,   1, 0,  19, 0,  11, 0,  Entity.state_formation, 11, 255, 2,
         2
     ]
 
     ubyte[] sequence2 = [
         0,   8, 6,
-        1,   2, 0,  19, 0,  7, 0,  Entity.state_formation, 12, 1, 1,
+        1,   2, 0,  0, 15,  12, 0,  Entity.state_formation, 12, 1, 1,
         2
     ]
 
     ubyte[] sequence3 = [
         0,   8, 6,
-        1,   3, 0,  4, 0,  6, 0,  Entity.state_formation, 20, 1, 1,
+        1,   3, 0, 22, 15,  13, 0,  Entity.state_formation, 20, 1, 1,
         2
     ]
 
     ubyte[] sequence4 = [
         0,   4, 6,
-        1,   4, 0,  19, 0,  7, 0,  Entity.state_formation, 36, 255, 2,
-        1,   4, 0,   4, 0,  6, 0,  Entity.state_formation, 29,   1, 2,
+        1,   4, 0,  19, 0,  11, 0,  Entity.state_formation, 36, 255, 2,
+        1,   4, 0,   4, 0,  10, 0,  Entity.state_formation, 29,   1, 2,
         2
     ]
 
     ubyte[] sequence5 = [
         0,   4, 6,
-        1,   5, 0,   4, 0,  6, 0,  Entity.state_formation, 39,   1, 2,
-        1,   5, 0,  19, 0,  7, 0,  Entity.state_formation, 46, 255, 2,
+        1,   5, 0,   4, 0,  10, 0,  Entity.state_formation, 39,   1, 2,
+        1,   5, 0,  19, 0,  11, 0,  Entity.state_formation, 46, 255, 2,
         2
     ]
 

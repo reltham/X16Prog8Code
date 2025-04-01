@@ -592,7 +592,7 @@ Entity
                             {
                                 curr_entity[entity_state_data + i] = 255
                             }
-                            SetNextState(entityIndex, state_diving, sub_state_on_path, 2 + (random_value >> 2), formation_slot)
+                            SetNextState(entityIndex, state_diving, sub_state_on_path, 2 + (random_value >> 1), formation_slot)
                             enemy_diving_index = entityIndex
                             enemy_diving = true
                             enemy_bullet_fired = 30
