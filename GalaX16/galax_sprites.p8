@@ -64,7 +64,7 @@ sprites
     {
         cx16.r1 = sprite_image_data_vera_addr_shifted
         cx16.r1H |= mode
-        cx16.r2L = collision_mask << 4 | zdepth_middle << 2 | flips_none
+        cx16.r2L = collision_mask << 4 | zdepth_disabled << 2 | flips_none
         cx16.r2H = size_32 << 6 | size_32 << 4 | palette_offset 
         uword @zp curr_sprite_slot = sprite_data_addr;
         repeat 124
@@ -78,21 +78,23 @@ sprites
             curr_sprite_slot += 8
         }
 
-        ; put logo sprites in last 4 slots
+        ; put logo sprites in last 4 slots, disabled and positioned correctly.
         cx16.r1 = $600
         cx16.r1H |= bpp_8
-        cx16.r2L = collision_mask << 4 | zdepth_back << 2 | flips_none
+        cx16.r2L = collision_mask << 4 | zdepth_disabled << 2 | flips_none
         cx16.r2H = size_64 << 6 | size_64 << 4 | 0
+        cx16.r3 = 128 as uword
         repeat 4
         {
             curr_sprite_slot[sprite_address_low] = cx16.r1L
             curr_sprite_slot[sprite_address_high_mode] = cx16.r1H
-            pokew(curr_sprite_slot + sprite_position_x, -64 as uword)
-            pokew(curr_sprite_slot + sprite_position_y, -64 as uword)
+            pokew(curr_sprite_slot + sprite_position_x, cx16.r3)
+            pokew(curr_sprite_slot + sprite_position_y, 128 as uword)
             curr_sprite_slot[sprite_collision_mask_zdepth_VHFlips] = cx16.r2L
             curr_sprite_slot[sprite_width_height_palette_offset] = cx16.r2H
             curr_sprite_slot += 8
             cx16.r1 += $80
+            cx16.r3 += 64 as uword
         }
     }
 

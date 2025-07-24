@@ -156,6 +156,7 @@ Entity
             curr_bullet_entity[entity_state] = state_none
             ReleaseIndex(bullet_entity_index[bullet])
             sprites.SetY(curr_bullet_entity[entity_sprite_slot], -33 as uword)
+            sprites.SetZDepth(curr_bullet_entity[entity_sprite_slot], sprites.zdepth_disabled)
             if (bullet < num_player_bullets - 1)
             {
                 ubyte @zp i
@@ -179,6 +180,7 @@ Entity
             curr_bullet_entity[entity_state] = state_none
             ReleaseIndex(bullet_entity_index[bullet])
             sprites.SetY(curr_bullet_entity[entity_sprite_slot], -33 as uword)
+            sprites.SetZDepth(curr_bullet_entity[entity_sprite_slot], sprites.zdepth_disabled)
             if (bullet < start_enemy_bullets + num_enemy_bullets - 1)
             {
                 ubyte @zp i
@@ -493,6 +495,7 @@ Entity
             else
             {
                 sprites.SetY(curr_entity[entity_sprite_slot], -33 as uword)
+                sprites.SetZDepth(curr_entity[entity_sprite_slot], sprites.zdepth_disabled)
                 if (curr_entity[entity_type] == type_enemy)
                 {
                     num_active_enemies--

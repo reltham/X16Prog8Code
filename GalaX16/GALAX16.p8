@@ -20,8 +20,9 @@ main
     const ubyte gamestate_init = 2
     const ubyte gamestate_starting = 3
     const ubyte gamestate_ingame = 4
-    const ubyte gamestate_player_died = 5
-    const ubyte gamestate_game_over = 6
+    const ubyte gamestate_paused = 5
+    const ubyte gamestate_player_died = 6
+    const ubyte gamestate_game_over = 7
 
     const ubyte game_data_ram_bank = 2
     ubyte current_gamestate = gamestate_title
@@ -34,7 +35,6 @@ main
     ubyte start_countdown = 0
     bool was_diving = false
     bool start_the_level = false
-    bool paused = false
     ubyte level = 0
 
     sub start()
@@ -52,190 +52,189 @@ main
         GameData.End()
 
         txt.home()
-        txt.print("          \n")
+        txt.print("\n          ")
 
         bool spawn_player = false
-        InputHandler.pressed_start = false;
+        InputHandler.pressed_start = false
         repeat
         {
-            if (paused == false)
+            when current_gamestate
             {
-                when current_gamestate
-                {
-                    gamestate_title -> {
-                        ; display logo
-                        GameData.Begin()
-                        sprites.SetPosition(124, 128 as uword, 128 as uword)
-                        sprites.SetPosition(125, 192 as uword, 128 as uword)
-                        sprites.SetPosition(126, 256 as uword, 128 as uword)
-                        sprites.SetPosition(127, 320 as uword, 128 as uword)
-                        GameData.End()
-                        txt.plot(26,25)
-                        txt.print(iso:"PRESS START!")
-    
-                        ; wait for start press
-                        InputHandler.DoScan()
-                        if (InputHandler.pressed_start == true)
+                gamestate_title -> {
+                    ; display logo
+                    GameData.Begin()
+                    sprites.SetZDepth(124, sprites.zdepth_back)
+                    sprites.SetZDepth(125, sprites.zdepth_back)
+                    sprites.SetZDepth(126, sprites.zdepth_back)
+                    sprites.SetZDepth(127, sprites.zdepth_back)
+                    GameData.End()
+                    txt.plot(26,25)
+                    txt.print(iso:"PRESS START!")
+
+                    ; wait for start press
+                    InputHandler.DoScan()
+                    if (InputHandler.pressed_start == true)
+                    {
+                        InputHandler.pressed_start = false;
+                        current_gamestate = gamestate_init
+                    }
+                }
+                gamestate_init -> {
+                    ; hide logo
+                    GameData.Begin()
+                    sprites.SetZDepth(124, sprites.zdepth_disabled)
+                    sprites.SetZDepth(125, sprites.zdepth_disabled)
+                    sprites.SetZDepth(126, sprites.zdepth_disabled)
+                    sprites.SetZDepth(127, sprites.zdepth_disabled)
+                    GameData.End()
+                    txt.plot(26,25)
+                    txt.print(iso:"            ")
+
+                    level = 0
+                    player_lives = 3
+                    score = 0
+
+                    ; clear old score
+                    txt.home()
+                    txt.print("        ")
+
+                    ; start the game
+                    start_the_level = true
+                    GameData.Begin()
+                    sprites.ResetSpriteSlots()
+                    Entity.InitEntitySlots()
+                    Entity.ResetLists()
+                    GameData.End()
+                    start_countdown = 90
+                    zsmkit.zsm_play(0)
+                    Sounds.PlaySFX(0)
+                    current_gamestate = gamestate_starting
+                }
+                gamestate_starting -> {
+                    if (Entity.enemy_diving == false)
+                    {
+                        if (start_countdown == 90)
                         {
-                            InputHandler.pressed_start = false;
-                            current_gamestate = gamestate_init
+                            txt.plot(28,25)
+                            txt.print("get ready!")
+                            GameData.Begin()
+                            player_index = Entity.GetIndex()
+                            Entity.Add(player_index, 248, 362, Entity.type_player, GameData.player_ship, Entity.state_none, Entity.sub_state_none, 0)
+                            GameData.End()
+                            Entity.player_offset = 248
+                        }
+                        if (start_countdown == 1)
+                        {
+                            txt.plot(28,25)
+                            txt.print("          ")
+                        }
+                        start_countdown--
+                        if (start_countdown == 0)
+                        {
+                            if (was_diving == true)
+                            {
+                                was_diving = false
+                                Entity.enable_enemy_diving = true
+                            }
+                            if (start_the_level == true)
+                            {
+                                start_the_level = false
+                                Sequencer.StartLevel(level)
+                            }
+                            current_gamestate = gamestate_ingame
                         }
                     }
-                    gamestate_init -> {
-                        ; hide logo
-                        GameData.Begin()
-                        sprites.SetPosition(124, -64 as uword, -64 as uword)
-                        sprites.SetPosition(125, -64 as uword, -64 as uword)
-                        sprites.SetPosition(126, -64 as uword, -64 as uword)
-                        sprites.SetPosition(127, -64 as uword, -64 as uword)
-                        GameData.End()
-                        txt.plot(26,25)
-                        txt.print(iso:"            ")
-    
-                        level = 0
-                        player_lives = 3
-                        score = 0
-    
-                        ; clear old score
-                        txt.home()
-                        txt.print("        ")
-    
-                        ; start the game
-                        start_the_level = true
-                        GameData.Begin()
-                        sprites.ResetSpriteSlots()
-                        Entity.InitEntitySlots()
-                        Entity.ResetLists()
-                        GameData.End()
-                        start_countdown = 90
+                    GameData.Begin()
+                    Sequencer.Update()
+                    Entity.Update()
+                    GameData.End()
+                }
+                gamestate_ingame -> {
+                    GameData.Begin()
+                    Sequencer.Update()
+                    Entity.Update()
+                    GameData.End()
+
+                    InputHandler.DoScan()
+                    if (InputHandler.pressed_start == true)
+                    {
+                        InputHandler.pressed_start = false;
+                        zsmkit.zsm_stop(0)
+                        zsmkit.zcm_stop()
+                        zsmkit.zcm_play(0, 8)
+                        current_gamestate = gamestate_paused
+                    }
+                    if (InputHandler.oldleft == true)
+                    {
+                        Entity.player_offset -= 4
+                        if (Entity.player_offset < 4)
+                        {
+                            Entity.player_offset = 4
+                        }
+                    }
+                    if (InputHandler.oldright == true)
+                    {
+                        Entity.player_offset += 4
+                        if (Entity.player_offset > 476)
+                        {
+                            Entity.player_offset = 476
+                        }
+                    }
+                    if (InputHandler.fire_bullet == true and spawn_player == false)
+                    {
+                        InputHandler.fire_bullet = false
+                        Entity.AddPlayerBullet()
+                    }
+                }
+                gamestate_paused -> {
+                    InputHandler.DoScan()
+                    if (InputHandler.pressed_start == true)
+                    {
+                        InputHandler.pressed_start = false;
+                        zsmkit.zcm_stop()
+                        zsmkit.zcm_play(1, 8)
                         zsmkit.zsm_play(0)
-                        Sounds.PlaySFX(0)
+                        current_gamestate = gamestate_ingame
+                    }
+                }
+                gamestate_player_died -> {
+                    if (player_lives > 0)
+                    {
+                        player_lives--
+                    }
+                    if (player_lives > 0)
+                    {
+                        start_countdown = 90
                         current_gamestate = gamestate_starting
                     }
-                    gamestate_starting -> {
-                        if (Entity.enemy_diving == false)
-                        {
-                            if (start_countdown == 90)
-                            {
-                                txt.plot(28,25)
-                                txt.print("get ready!")
-                                GameData.Begin()
-                                player_index = Entity.GetIndex()
-                                Entity.Add(player_index, 248, 362, Entity.type_player, GameData.player_ship, Entity.state_none, Entity.sub_state_none, 0)
-                                GameData.End()
-                                Entity.player_offset = 248
-                            }
-                            if (start_countdown == 1)
-                            {
-                                txt.plot(28,25)
-                                txt.print("          ")
-                            }
-                            start_countdown--
-                            if (start_countdown == 0)
-                            {
-                                if (was_diving == true)
-                                {
-                                    was_diving = false
-                                    Entity.enable_enemy_diving = true
-                                }
-                                if (start_the_level == true)
-                                {
-                                    start_the_level = false
-                                    Sequencer.StartLevel(level)
-                                }
-                                current_gamestate = gamestate_ingame
-                            }
-                        }
-                        GameData.Begin()
-                        Sequencer.Update()
-                        Entity.Update()
-                        GameData.End()
+                    else
+                    {
+                        game_over = 180
+                        was_diving = false
+                        current_gamestate = gamestate_game_over
                     }
-                    gamestate_ingame -> {
-                        GameData.Begin()
-                        Sequencer.Update()
-                        Entity.Update()
-                        GameData.End()
-    
-                        InputHandler.DoScan()
-                        if (InputHandler.pressed_start == true)
-                        {
-                            InputHandler.pressed_start = false;
-                            zsmkit.zcm_stop()
-                            if (paused)
-                            {
-                                zsmkit.zsm_play(0)
-                                paused = false
-                                zsmkit.zcm_play(1, 8)
-                            }
-                            else
-                            {
-                                zsmkit.zsm_stop(0)
-                                paused = true
-                                zsmkit.zcm_play(0, 8)
-                            }
-                        }
-                        if (InputHandler.oldleft == true)
-                        {
-                            Entity.player_offset -= 4
-                            if (Entity.player_offset < 4)
-                            {
-                                Entity.player_offset = 4
-                            }
-                        }
-                        if (InputHandler.oldright == true)
-                        {
-                            Entity.player_offset += 4
-                            if (Entity.player_offset > 476)
-                            {
-                                Entity.player_offset = 476
-                            }
-                        }
-                        if (InputHandler.fire_bullet == true and spawn_player == false)
-                        {
-                            InputHandler.fire_bullet = false
-                            Entity.AddPlayerBullet()
-                        }
+                }
+                gamestate_game_over -> {
+                    if (game_over == 180)
+                    {
+                        txt.plot(28,25)
+                        txt.print("game over")
+                        zsmkit.zsm_stop(0)
+                        zsmkit.zsm_rewind(0)
                     }
-                    gamestate_player_died -> {
-                        if (player_lives > 0)
-                        {
-                            player_lives--
-                        }
-                        if (player_lives > 0)
-                        {
-                            start_countdown = 90
-                            current_gamestate = gamestate_starting
-                        }
-                        else
-                        {
-                            game_over = 180
-                            was_diving = false
-                            current_gamestate = gamestate_game_over
-                        }
-                    }
-                    gamestate_game_over -> {
-                        if (game_over == 180)
-                        {
-                            txt.plot(28,25)
-                            txt.print("game over")
-                            zsmkit.zsm_stop(0)
-                            zsmkit.zsm_rewind(0)
-                        }
+                    GameData.Begin()
+                    Sequencer.Update()
+                    Entity.Update()
+                    GameData.End()
+                    game_over--
+                    if (game_over == 0)
+                    {
+                        txt.plot(28,25)
+                        txt.print("         ")
                         GameData.Begin()
-                        Sequencer.Update()
-                        Entity.Update()
+                        sprites.ResetSpriteSlots()
                         GameData.End()
-                        game_over--
-                        if (game_over == 0)
-                        {
-                            txt.plot(28,25)
-                            txt.print("         ")
-                            GameData.Begin()
-                            sprites.ResetSpriteSlots()
-                            GameData.End()
-                            current_gamestate = gamestate_title
-                        }
+                        current_gamestate = gamestate_title
                     }
                 }
             }
