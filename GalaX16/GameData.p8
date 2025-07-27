@@ -3,10 +3,8 @@
 GameData
 {
     ; game ram bank layout
-    ;
     ; $A000 - $AFFF -> 4K - 128 entities, 32 bytes each
-    ; $B000 - $B3FF -> 1K - 128 sprites, 8 bytes each
-    ; $B400 - $BFFF -> 3K for paths
+    ; $B000 - $BFFF -> 4K for paths
     ;
     const ubyte ram_bank = 2
 

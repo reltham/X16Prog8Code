@@ -72,7 +72,7 @@ Entity
     ubyte enemy_bullet_fired = 0
     
     ; this changes each time you clear a level to make it more likely an enemy will dive 
-    ubyte random_chance = 250
+    ubyte random_chance = 200
 
     uword player_offset = 248
 
@@ -361,7 +361,7 @@ Entity
         curr_entity[entity_state_next_state_data2] = nextStateData2
     }
 
-    sub SetPosition(ubyte entityIndex, uword xPos, uword yPos)
+    sub SetTargetPosition(ubyte entityIndex, uword xPos, uword yPos)
     {
         uword @zp curr_entity = entities_addr + (entityIndex as uword << 5)
         pokew(curr_entity + entity_state_next_state_data2, xPos)
@@ -378,13 +378,25 @@ Entity
         ; wrap on screen edges (but allow sprites to move off edges before wrapping)
         if (msb(xPosA) != 0)
         {
-            if (xPosA > 511) xPosA -= 544
-            else if (xPosA < -32) xPosA += 544
+            if (xPosA > 511)
+            {
+                xPosA -= 544
+            }
+            else if (xPosA < -32)
+            {
+                xPosA += 544
+            }
         }
         if (msb(yPosA) != 0)
         {
-            if (yPosA > 399) yPosA -= 432
-            else if (yPosA < -326) yPosA += 432
+            if (yPosA > 439)
+            {
+                yPosA = -32
+            }
+            else if (yPosA < -32)
+            {
+                yPosA += 432
+            }
         }
 
         sprites.SetPosAddrFlips(curr_entity[entity_sprite_slot], xPosA as uword, yPosA as uword, spriteIndex, spriteFlips) 
@@ -579,7 +591,11 @@ Entity
                 if (enable_enemy_diving == true)
                 {
                     ubyte random_value = math.rnd()
-                    if (enemy_diving == false and random_value > random_chance)
+                    if (num_active_enemies < 3)
+                    {
+                        random_value = 255
+                    }
+                    if (enemy_diving == false and random_value > (random_chance - ((36 - num_active_enemies) * 4)))
                     {
                         random_value = math.rnd()
                         if (random_value < 16)
@@ -634,10 +650,13 @@ Entity
                 if (pathEntry[1] == 0)
                 {
                     ubyte saved_formation_slot = 255
-                    if (curr_entity[entity_state] == state_start_dive)
+                    if (curr_entity[entity_state] == state_start_dive or curr_entity[entity_state] == state_diving)
                     {
                         saved_formation_slot = curr_entity[entity_state_next_state_data2]
-                        curr_entity[entity_state_next_state_data2] = 0
+                        if (curr_entity[entity_state] == state_start_dive)
+                        {
+                            curr_entity[entity_state_next_state_data2] = 0
+                        }
                     }
 
                     curr_entity[entity_state] = curr_entity[entity_state_next_state]
@@ -654,8 +673,17 @@ Entity
 
                     if (curr_entity[entity_state] == state_diving)
                     {
-                        SetNextState(entityIndex, state_formation, sub_state_formation_init, saved_formation_slot, 0)
-                        Sequencer.SetEntityFormationPosition(entityIndex, saved_formation_slot)
+                        ; 8 and 9 are the loop back up dive paths, so those always just go back to formation
+                        if (curr_entity[entity_state_data] == 8 or curr_entity[entity_state_data] == 9)
+                        {
+                            SetNextState(entityIndex, state_formation, sub_state_formation_init, saved_formation_slot, 0)
+                            Sequencer.SetEntityFormationPosition(entityIndex, saved_formation_slot)
+                        }
+                        else
+                        {
+                            random_value = math.rnd() & $03
+                            SetNextState(entityIndex, state_diving, sub_state_on_path, 2 + random_value, saved_formation_slot)
+                        }
                     }
                 }
                 else
@@ -709,9 +737,30 @@ Entity
                 curr_entity[entity_state_path_offset]++
             }
 
+
             test_x = sprites.GetX(curr_entity[entity_sprite_slot]) as uword + 8
             test_y = sprites.GetY(curr_entity[entity_sprite_slot]) as uword
-            if (enemy_diving == true and entityIndex == enemy_diving_index and enemy_bullet_fired == 0 and test_y < 320 and test_y > 120)
+            if (curr_entity[entity_state] == state_diving and test_y > 400 and test_y < 440)
+            {
+                saved_formation_slot = curr_entity[entity_state_next_state_data2]
+                SetNextState(entityIndex, state_formation, sub_state_formation_init, saved_formation_slot, 0)
+                Sequencer.SetEntityFormationPosition(entityIndex, saved_formation_slot)
+                uword new_x = peekw(curr_entity + entity_state_next_state_data2)
+                sprites.SetPosition(curr_entity[entity_sprite_slot], new_x, -32 as uword)
+
+                ; switch to the next state now
+                curr_entity[entity_state] = curr_entity[entity_state_next_state]
+                curr_entity[entity_sub_state] = curr_entity[entity_state_next_sub_state]
+                curr_entity[entity_state_data] = curr_entity[entity_state_next_state_data]
+                if (curr_entity[entity_state_next_state] != state_none)
+                {
+                    for i in 1 to 4
+                    {
+                        curr_entity[entity_state_data + i] = curr_entity[entity_state_next_state_data + i]
+                    }
+                }
+            }
+            else if (enemy_diving == true and entityIndex == enemy_diving_index and enemy_bullet_fired == 0 and test_y < 320 and test_y > 120)
             {
                 enemy_bullet_fired = 15
                 if (num_enemy_bullets > 0)
@@ -749,6 +798,6 @@ Entity
             curr_entity += 32
         }
         num_active_enemies = 0
-        random_chance = 250
+        random_chance = 200
     }
 }

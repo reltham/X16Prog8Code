@@ -14,6 +14,14 @@
 %import GameData
 %zeropage kernalsafe
 
+; memory map
+; $0400 - $07FF ->   1K - sprite register RAM copy, 128 sprites, 8 bytes each
+; $0800 - $9EFF -> ~38k - game code
+;
+; zsmkit is in bank 1
+; gamedata is in bank 2
+; music/sfx are in banks 3+
+
 main
 {
     const ubyte gamestate_title = 1
@@ -48,8 +56,8 @@ main
         InputHandler.Init()
         GameData.Begin()
         SpritePathTables.Init()
-        sprites.Init()
         GameData.End()
+        sprites.Init()
 
         txt.home()
         txt.print("\n          ")
@@ -62,12 +70,10 @@ main
             {
                 gamestate_title -> {
                     ; display logo
-                    GameData.Begin()
                     sprites.SetZDepth(124, sprites.zdepth_back)
                     sprites.SetZDepth(125, sprites.zdepth_back)
                     sprites.SetZDepth(126, sprites.zdepth_back)
                     sprites.SetZDepth(127, sprites.zdepth_back)
-                    GameData.End()
                     txt.plot(26,25)
                     txt.print(iso:"PRESS START!")
 
@@ -81,12 +87,10 @@ main
                 }
                 gamestate_init -> {
                     ; hide logo
-                    GameData.Begin()
                     sprites.SetZDepth(124, sprites.zdepth_disabled)
                     sprites.SetZDepth(125, sprites.zdepth_disabled)
                     sprites.SetZDepth(126, sprites.zdepth_disabled)
                     sprites.SetZDepth(127, sprites.zdepth_disabled)
-                    GameData.End()
                     txt.plot(26,25)
                     txt.print(iso:"            ")
 
@@ -100,8 +104,8 @@ main
 
                     ; start the game
                     start_the_level = true
-                    GameData.Begin()
                     sprites.ResetSpriteSlots()
+                    GameData.Begin()
                     Entity.InitEntitySlots()
                     Entity.ResetLists()
                     GameData.End()
@@ -231,17 +235,13 @@ main
                     {
                         txt.plot(28,25)
                         txt.print("         ")
-                        GameData.Begin()
                         sprites.ResetSpriteSlots()
-                        GameData.End()
                         current_gamestate = gamestate_title
                     }
                 }
             }
 
-            GameData.Begin()
             sprites.Update()
-            GameData.End()
 
             txt.home()
             txt.print_uw(score)
@@ -292,9 +292,9 @@ main
         Sounds.PlaySFX(0)
         Entity.ResetFormationMotion()
         Entity.random_chance -= 10
-        if (Entity.random_chance < 10)
+        if (Entity.random_chance < 150)
         {
-            Entity.random_chance = 10
+            Entity.random_chance = 150
         }
         level++
         Sequencer.StartLevel(level)

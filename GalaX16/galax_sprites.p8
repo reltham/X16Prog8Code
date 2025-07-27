@@ -1,7 +1,7 @@
 
 sprites
 {
-    const uword sprite_data_addr = $B000
+    const uword sprite_data_addr = $0400
 
     ; sprites are loaded into VERA memory at $10000
     ; sprites are 16x16x4bpp, so 128 bytes per sprite
@@ -188,8 +188,8 @@ sprites
             sta  cx16.VERA_ADDR_M
 
             ; set up our memory read address
-            lda  #<$b000
-            ldy  #>$b000
+            lda  #<p8c_sprite_data_addr
+            ldy  #>p8c_sprite_data_addr
             sta  p8s_SetFlips.p8v_curr_sprite_slot
             sty  p8s_SetFlips.p8v_curr_sprite_slot+1
 

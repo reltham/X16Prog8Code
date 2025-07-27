@@ -73,8 +73,8 @@ Sequencer
 
     ubyte[] sequence1 = [
         0,   3, 6,
-        1,   1, 0,   4, 0,  10, 0,  Entity.state_formation,  6,   1, 2,
-        1,   1, 0,  19, 0,  11, 0,  Entity.state_formation, 11, 255, 2,
+        1,   1, 0,   4, 0,  14, 0,  Entity.state_formation,  6,   1, 2,
+        1,   1, 0,  19, 0,  15, 0,  Entity.state_formation, 11, 255, 2,
         2
     ]
 
@@ -92,8 +92,8 @@ Sequencer
 
     ubyte[] sequence4 = [
         0,   4, 6,
-        1,   4, 0,  19, 0,  11, 0,  Entity.state_formation, 36, 255, 2,
-        1,   4, 0,   4, 0,  10, 0,  Entity.state_formation, 29,   1, 2,
+        1,   4, 0,  19, 0,  15, 0,  Entity.state_formation, 36, 255, 2,
+        1,   4, 0,   4, 0,  14, 0,  Entity.state_formation, 29,   1, 2,
         2
     ]
 
@@ -248,7 +248,7 @@ Sequencer
 
     sub SetEntityFormationPosition(ubyte entityIndex, ubyte slotIndex)
     {
-        Entity.SetPosition(entityIndex, formation_positions_x[formation_slots[slotIndex*2]], formation_positions_y[formation_slots[(slotIndex*2)+1]])
+        Entity.SetTargetPosition(entityIndex, formation_positions_x[formation_slots[slotIndex*2]], formation_positions_y[formation_slots[(slotIndex*2)+1]])
     }
 
     sub InitEntity(uword entity_data)
