@@ -15,8 +15,10 @@
 %zeropage kernalsafe
 
 ; memory map
-; $0400 - $07FF ->   1K - sprite register RAM copy, 128 sprites, 8 bytes each
-; $0800 - $9EFF -> ~38k - game code
+; $0400 - $07FF ->     1K - sprite register RAM copy, 128 sprites, 8 bytes each
+; $0800 - $6FFF -> ~26.5k - game code + BSS
+; $7000 - $8EFF ->  ~7.9k - paths (currently only using about 4k, but many more paths needed)
+; $8F00 - $9EFF ->     8k - entities array, 128 entities, 32 bytes each
 ;
 ; zsmkit is in bank 1
 ; gamedata is in bank 2
@@ -54,9 +56,7 @@ main
 
         Sounds.SetupZSMKit()
         InputHandler.Init()
-        GameData.Begin()
         SpritePathTables.Init()
-        GameData.End()
         sprites.Init()
 
         txt.home()
@@ -105,27 +105,27 @@ main
                     ; start the game
                     start_the_level = true
                     sprites.ResetSpriteSlots()
-                    GameData.Begin()
                     Entity.InitEntitySlots()
                     Entity.ResetLists()
-                    GameData.End()
                     start_countdown = 90
                     zsmkit.zsm_play(0)
                     Sounds.PlaySFX(0)
                     current_gamestate = gamestate_starting
                 }
                 gamestate_starting -> {
-                    if (Entity.enemy_diving == false)
+                    if (Entity.enemy_diving == false and Entity.num_enemy_bullets == 0)
                     {
                         if (start_countdown == 90)
                         {
                             txt.plot(28,25)
                             txt.print("get ready!")
-                            GameData.Begin()
                             player_index = Entity.GetIndex()
-                            Entity.Add(player_index, 248, 362, Entity.type_player, GameData.player_ship, Entity.state_none, Entity.sub_state_none, 0)
-                            GameData.End()
+                            Entity.Add(player_index, 248, 399, Entity.type_player, GameData.player_ship, Entity.state_none, Entity.sub_state_none, 0)
                             Entity.player_offset = 248
+                        }
+                        if (start_countdown < 38)
+                        {
+                            Entity.UpdateEntityYPosition(player_index, 362 + start_countdown)
                         }
                         if (start_countdown == 1)
                         {
@@ -148,16 +148,12 @@ main
                             current_gamestate = gamestate_ingame
                         }
                     }
-                    GameData.Begin()
                     Sequencer.Update()
                     Entity.Update()
-                    GameData.End()
                 }
                 gamestate_ingame -> {
-                    GameData.Begin()
                     Sequencer.Update()
                     Entity.Update()
-                    GameData.End()
 
                     InputHandler.DoScan()
                     if (InputHandler.pressed_start == true)
@@ -226,10 +222,8 @@ main
                         zsmkit.zsm_stop(0)
                         zsmkit.zsm_rewind(0)
                     }
-                    GameData.Begin()
                     Sequencer.Update()
                     Entity.Update()
-                    GameData.End()
                     game_over--
                     if (game_over == 0)
                     {

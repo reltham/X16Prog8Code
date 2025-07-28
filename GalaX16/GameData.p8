@@ -2,12 +2,6 @@
 
 GameData
 {
-    ; game ram bank layout
-    ; $A000 - $AFFF -> 4K - 128 entities, 32 bytes each
-    ; $B000 - $BFFF -> 4K for paths
-    ;
-    const ubyte ram_bank = 2
-
     const ubyte enemy_bullet = 19
     const ubyte player_bullet = 18
     const ubyte player_ship = 16
@@ -105,15 +99,4 @@ GameData
     {
         return mkword(ship_sprite_offset[shipIndex] + ship_rotation_table[direction * 2], ship_rotation_table[(direction * 2) + 1]) 
     }
-
-    sub Begin()
-    {
-        cx16.rambank(ram_bank)
-    }
-
-    sub End()
-    {
-        cx16.rambank(0)
-    }
-
 }

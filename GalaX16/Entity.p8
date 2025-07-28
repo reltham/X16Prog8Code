@@ -1,6 +1,6 @@
 Entity
 {
-    const uword entities_addr = $A000
+    const uword entities_addr = $8F00
 
     ; entities are 32 bytes each
     const ubyte entity_sprite_slot = 0
@@ -272,9 +272,7 @@ Entity
         if (num_player_bullets < max_player_bullets)
         {
             Sounds.PlaySFX(4)
-            GameData.Begin()
             Add(GetIndex(), player_offset, 340, type_player_bullet, GameData.player_bullet, state_none, sub_state_none, 0)
-            GameData.End()
         }
     }
 
@@ -283,11 +281,16 @@ Entity
         if (num_enemy_bullets < max_enemy_bullets)
         {
             Sounds.PlaySFX(1)
-            GameData.Begin()
             Add(GetIndex(), enemy_x, enemy_y + 16, type_enemy_bullet, GameData.enemy_bullet, state_none, sub_state_none, dx)
-            GameData.End()
         }
     }
+
+    sub UpdateEntityYPosition(ubyte entityIndex, uword newY)
+    {
+        uword @zp curr_entity = entities_addr + (entityIndex as uword << 5)
+        sprites.SetY(curr_entity[entity_sprite_slot], newY)
+    }
+
 
     sub Add(ubyte entityIndex, uword xPos, uword yPos, ubyte type, ubyte typeData, ubyte state, ubyte subState, ubyte stateData)
     {
@@ -367,7 +370,7 @@ Entity
         pokew(curr_entity + entity_state_next_state_data2, xPos)
         pokew(curr_entity + entity_state_next_state_data2 + 2, yPos)
     }
-
+    
     sub UpdateSpriteSlot(ubyte entityIndex, word xPos, word yPos, ubyte spriteIndex, ubyte spriteFlips)
     {
         uword @zp curr_entity = entities_addr + (entityIndex as uword << 5)

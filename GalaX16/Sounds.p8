@@ -84,7 +84,6 @@ Sounds
 
         cx16.rambank(zsmdata_bank_start)
         void diskio.load_raw(iso:"TEST.ZSM", $A000)
-        ;void diskio.load_raw(iso:"SHOVEL_S.ZSM", $A000)
         ubyte zcmbank = cx16.getrambank() + 1
         zsmkit.zsm_setbank(0, zsmdata_bank_start)
         zsmkit.zsm_setmem(0, $A000)

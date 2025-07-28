@@ -1,14 +1,13 @@
 
-
 SpritePathTables
 {
-    ; PATHS.BIN is loaded at $B000 in the game ram bank
-    &uword num_paths = $B000
-    const uword paths = $B002
+    ; PATHS.BIN is loaded at $7000 in the game ram bank
+    &uword num_paths = $7000
+    const uword paths = $7002
 
     sub Init()
     {
-        void diskio.load_raw(iso:"PATHS.BIN", $B000)
+        void diskio.load_raw(iso:"PATHS.BIN", $7000)
     }
 
     ; fill up a "struct" with path data and ship sprite data
