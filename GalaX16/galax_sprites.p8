@@ -39,17 +39,20 @@ sprites
     {
         ; load logo sprites into VERA, palette is loaded right into registers at $1fa00+
         void diskio.vload_raw(iso:"GALAX16-256X64.BIN", 0, $C000)
-        void diskio.vload_raw(iso:"GALAX16-256X64-PALETTE.BIN", 1, $fA00)
-
+        void diskio.vload_raw(iso:"GALAX16-256X64-PALETTE.BIN", 1, $FA00)
+        
         ; load our sprites into VERA, the palettes are loaded right into the palette registers at $1fB00+
         void diskio.vload_raw(iso:"EXPLOSIONSMISC.BIN", 1, $0000)
-        void diskio.vload_raw(iso:"EXPLOSIONSMISC.PAL", 1, $fB00)
+        void diskio.vload_raw(iso:"EXPLOSIONSMISC.PAL", 1, $FB00)
         void diskio.vload_raw(iso:"REDSHIPS.BIN", 1, $2000)
-        void diskio.vload_raw(iso:"REDSHIPS.PAL", 1, $fB20)
+        void diskio.vload_raw(iso:"REDSHIPS.PAL", 1, $FB20)
         void diskio.vload_raw(iso:"GREENSHIPS.BIN", 1, $4000)
-        void diskio.vload_raw(iso:"GREENSHIPS.PAL", 1, $fB40)
+        void diskio.vload_raw(iso:"GREENSHIPS.PAL", 1, $FB40)
         void diskio.vload_raw(iso:"BLUESHIPS.BIN", 1, $6000)
-        void diskio.vload_raw(iso:"BLUESHIPS.PAL", 1, $fB60)
+        void diskio.vload_raw(iso:"BLUESHIPS.PAL", 1, $FB60)
+
+        void diskio.vload_raw(iso:"STARTILES.BIN", 0, $B800)
+        void diskio.vload_raw(iso:"STARTILES.PAL", 1, $FBE0)
 
         ; enable sprites
         cx16.VERA_DC_VIDEO = cx16.VERA_DC_VIDEO | %01000000

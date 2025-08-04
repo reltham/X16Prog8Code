@@ -59,7 +59,6 @@ Entity
     const ubyte max_enemy_bullets = 4
     ubyte[16] bullet_entity_index = [0] * 16
 
-    bool enable_formation_moving = false
     byte formation_offset_update = 0
     word curr_formation_x_offset = 0
     byte curr_formation_y_offset = 0
@@ -138,7 +137,6 @@ Entity
 
     sub ResetFormationMotion()
     {
-        enable_formation_moving = false
         formation_offset_update = 0
         curr_formation_x_offset = 0
         curr_formation_y_offset = 0
@@ -407,7 +405,7 @@ Entity
 
     sub UpdateEntity(ubyte entityIndex, bool bFirstTimePerFrame) -> bool
     {
-        if (enable_formation_moving == true and bFirstTimePerFrame == true)
+        if (bFirstTimePerFrame == true)
         {
             if (formation_offset_update == 0)
             {
@@ -514,7 +512,7 @@ Entity
                 if (curr_entity[entity_type] == type_enemy)
                 {
                     num_active_enemies--
-                    if (num_active_enemies == 0 and enable_formation_moving == true)
+                    if (num_active_enemies == 0)
                     {
                         main.EnemiesCleared()
                     }

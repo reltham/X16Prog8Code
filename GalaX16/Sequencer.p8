@@ -197,7 +197,7 @@ Sequencer
     ubyte sequence_curr_entity_index = 0
     ubyte[16] sequence_formation_slots = [0] * 16
 
-    sub Update()
+    sub Update(bool bAllowAdvanceLevelStep)
     {
         if (curr_sequence != 0)
         {
@@ -235,7 +235,7 @@ Sequencer
                 }
             }
         }
-        else if (curr_level != 0)
+        else if (curr_level != 0 and bAllowAdvanceLevelStep == true)
         {
             level_set_curr_delay--
             if (level_set_curr_delay <= 0)
@@ -284,7 +284,6 @@ Sequencer
         if (level_set_curr_delay == 255)
         {
             curr_level = 0
-            Entity.enable_formation_moving = true
             Entity.enable_enemy_diving = true
         }
         else

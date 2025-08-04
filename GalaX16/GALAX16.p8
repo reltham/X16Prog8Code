@@ -34,13 +34,11 @@ main
     const ubyte gamestate_player_died = 6
     const ubyte gamestate_game_over = 7
 
-    const ubyte game_data_ram_bank = 2
     ubyte current_gamestate = gamestate_title
     uword score = 0
     uword extra_life_tracker = 0
     ubyte player_index = 0
     ubyte player_lives = 3
-    ubyte player_died = 0
     ubyte game_over = 0
     ubyte start_countdown = 0
     bool was_diving = false
@@ -52,6 +50,7 @@ main
         void cx16.screen_mode(8, false)
         ;cx16.VERA_DC_BORDER = 11
         txt.home()
+
         txt.print(iso:"\nLOADING...")
 
         Sounds.SetupZSMKit()
@@ -59,13 +58,38 @@ main
         SpritePathTables.Init()
         sprites.Init()
 
+        ; enable sprites, layer0, and layer1
+        cx16.VERA_DC_VIDEO = cx16.VERA_DC_VIDEO | %01110000
+
+        ; layer 0 = 64x64 tile map at $00000
+        ; tilemap is at $0B800 and it 16x16 tiles 4bit color
+        cx16.VERA_L0_CONFIG = %01010010
+        cx16.VERA_L0_MAPBASE = 0
+        cx16.VERA_L0_TILEBASE = $5F
+
+        ; populate tilemap with random tiles indices 0 to 15
+        ; palette offset = 15
+        uword addr
+        for addr in 0 to 8192 step 2
+        {
+            ubyte tileindex = math.rnd() & $0F
+            cx16.vpoke(0, addr, tileindex)
+            cx16.vpoke(0, addr+1, $F0)
+        }
+
         txt.home()
         txt.print("\n          ")
 
-        bool spawn_player = false
+        uword stars_scroll = 4095
+        ubyte stars_speed = 1
         InputHandler.pressed_start = false
         repeat
         {
+            cx16.VERA_L0_VSCROLL_L = lsb(stars_scroll)
+            cx16.VERA_L0_VSCROLL_H = msb(stars_scroll)
+            stars_scroll -= stars_speed
+            stars_scroll &= $0FFF
+
             when current_gamestate
             {
                 gamestate_title -> {
@@ -82,18 +106,20 @@ main
                     if (InputHandler.pressed_start == true)
                     {
                         InputHandler.pressed_start = false;
+
+                        ; hide logo
+                        sprites.SetZDepth(124, sprites.zdepth_disabled)
+                        sprites.SetZDepth(125, sprites.zdepth_disabled)
+                        sprites.SetZDepth(126, sprites.zdepth_disabled)
+                        sprites.SetZDepth(127, sprites.zdepth_disabled)
+                        txt.plot(26,25)
+                        txt.print(iso:"            ")
+
                         current_gamestate = gamestate_init
                     }
+                    stars_speed = 1
                 }
                 gamestate_init -> {
-                    ; hide logo
-                    sprites.SetZDepth(124, sprites.zdepth_disabled)
-                    sprites.SetZDepth(125, sprites.zdepth_disabled)
-                    sprites.SetZDepth(126, sprites.zdepth_disabled)
-                    sprites.SetZDepth(127, sprites.zdepth_disabled)
-                    txt.plot(26,25)
-                    txt.print(iso:"            ")
-
                     level = 0
                     player_lives = 3
                     score = 0
@@ -123,6 +149,10 @@ main
                             Entity.Add(player_index, 248, 399, Entity.type_player, GameData.player_ship, Entity.state_none, Entity.sub_state_none, 0)
                             Entity.player_offset = 248
                         }
+                        if (start_countdown == 36)
+                        {
+                            stars_speed = 3
+                        }
                         if (start_countdown < 38)
                         {
                             Entity.UpdateEntityYPosition(player_index, 362 + start_countdown)
@@ -148,11 +178,12 @@ main
                             current_gamestate = gamestate_ingame
                         }
                     }
-                    Sequencer.Update()
+                    Sequencer.Update(false)
                     Entity.Update()
                 }
                 gamestate_ingame -> {
-                    Sequencer.Update()
+                    stars_speed = 2
+                    Sequencer.Update(true)
                     Entity.Update()
 
                     InputHandler.DoScan()
@@ -180,13 +211,14 @@ main
                             Entity.player_offset = 476
                         }
                     }
-                    if (InputHandler.fire_bullet == true and spawn_player == false)
+                    if (InputHandler.fire_bullet == true)
                     {
                         InputHandler.fire_bullet = false
                         Entity.AddPlayerBullet()
                     }
                 }
                 gamestate_paused -> {
+                    stars_speed = 0
                     InputHandler.DoScan()
                     if (InputHandler.pressed_start == true)
                     {
@@ -222,7 +254,7 @@ main
                         zsmkit.zsm_stop(0)
                         zsmkit.zsm_rewind(0)
                     }
-                    Sequencer.Update()
+                    Sequencer.Update(false)
                     Entity.Update()
                     game_over--
                     if (game_over == 0)
