@@ -32,7 +32,6 @@ Sounds
         ^^SfxData:[iso:"SFX12.ZSM", 3, 0, 0],
         ^^SfxData:[iso:"SFX13.ZSM", 4, 0, 0]
     ]
-    const ubyte num_sfx_data = len(sfx_data)
 
     sub GetLoopChanged() -> bool
     {
@@ -91,10 +90,9 @@ Sounds
         ;txt.nl()
         cx16.rambank(sfx_bank)
         uword curr_addr = $A000
-        ubyte i = 0
-        for i in 0 to num_sfx_data-1
+        ^^SfxData sfx
+        for sfx in sfx_data
         {
-            ^^SfxData sfx = sfx_data[i]
             sfx.addr = curr_addr
             sfx.bank = cx16.getrambank()
             curr_addr = diskio.load_raw(sfx.name, curr_addr)
