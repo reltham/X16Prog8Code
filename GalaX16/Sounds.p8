@@ -7,45 +7,32 @@ Sounds
     bool loopchanged = false
     bool beat = false
 
-    const ubyte num_sfx = 16
-    ubyte[num_sfx] sfx_banks
-    uword[num_sfx] sfx_addr
-    str[num_sfx] sfx_names = [
-        iso:"SPACEWARP10.ZSM",
-        iso:"ENEMYSHOOT11.ZSM", 
-        iso:"ENEMYHIT12.ZSM",
-        iso:"ENEMYDIVE14.ZSM",
-        iso:"PLAYERSHOOT16.ZSM",
-        iso:"BOOM_15.ZSM",
-        iso:"PEW_16.ZSM",
-        iso:"UFO_14.ZSM",
-        iso:"UFO_16.ZSM",
-        iso:"WIBBLE_16.ZSM",
-        iso:"SWEEPDOWNL_15.ZSM",
-        iso:"SWEEPUP_15.ZSM",
-        iso:"SFX10.ZSM",
-        iso:"SFX11.ZSM",
-        iso:"SFX12.ZSM",
-        iso:"SFX13.ZSM"
+    struct SfxData {
+        str name
+        ubyte priority
+        ubyte bank
+        uword addr
+    }
+
+    ^^SfxData[] sfx_data = [
+        ^^SfxData:[iso:"SPACEWARP10.ZSM", 1, 0, 0],
+        ^^SfxData:[iso:"ENEMYSHOOT11.ZSM", 2, 0, 0],
+        ^^SfxData:[iso:"ENEMYHIT12.ZSM", 3, 0, 0],
+        ^^SfxData:[iso:"ENEMYDIVE14.ZSM", 5, 0, 0],
+        ^^SfxData:[iso:"PLAYERSHOOT16.ZSM", 7, 0, 0],
+        ^^SfxData:[iso:"BOOM_15.ZSM", 6, 0, 0],
+        ^^SfxData:[iso:"PEW_16.ZSM", 7, 0, 0],
+        ^^SfxData:[iso:"UFO_14.ZSM", 5, 0, 0],
+        ^^SfxData:[iso:"UFO_16.ZSM", 7, 0, 0],
+        ^^SfxData:[iso:"WIBBLE_16.ZSM", 7, 0, 0],
+        ^^SfxData:[iso:"SWEEPDOWNL_15.ZSM", 6, 0, 0],
+        ^^SfxData:[iso:"SWEEPUP_15.ZSM", 6, 0, 0],
+        ^^SfxData:[iso:"SFX10.ZSM", 1, 0, 0],
+        ^^SfxData:[iso:"SFX11.ZSM", 2, 0, 0],
+        ^^SfxData:[iso:"SFX12.ZSM", 3, 0, 0],
+        ^^SfxData:[iso:"SFX13.ZSM", 4, 0, 0]
     ]
-    ubyte[num_sfx] sfx_priorities = [
-        1,
-        2,
-        3,
-        5,
-        7,
-        6,
-        7,
-        5,
-        7,
-        7,
-        6,
-        6,
-        1,
-        2,
-        3,
-        4
-    ]
+    const ubyte num_sfx_data = len(sfx_data)
 
     sub GetLoopChanged() -> bool
     {
@@ -69,9 +56,10 @@ Sounds
 
     sub PlaySFX(ubyte index)
     {
-        zsmkit.zsm_setbank(sfx_priorities[index], sfx_banks[index])
-        zsmkit.zsm_setmem(sfx_priorities[index], sfx_addr[index])
-        zsmkit.zsm_play(sfx_priorities[index])
+        ^^SfxData sfx = sfx_data[index]
+        zsmkit.zsm_setbank(sfx.priority, sfx.bank)
+        zsmkit.zsm_setmem(sfx.priority, sfx.addr)
+        zsmkit.zsm_play(sfx.priority)
     }
 
     sub SetupZSMKit()
@@ -104,16 +92,17 @@ Sounds
         cx16.rambank(sfx_bank)
         uword curr_addr = $A000
         ubyte i = 0
-        for i in 0 to num_sfx-1
+        for i in 0 to num_sfx_data-1
         {
-            sfx_addr[i] = curr_addr
-            curr_addr = diskio.load_raw(sfx_names[i], curr_addr)
-            sfx_banks[i] = cx16.getrambank()
-            ;txt.print(sfx_names[i])
+            ^^SfxData sfx = sfx_data[i]
+            sfx.addr = curr_addr
+            sfx.bank = cx16.getrambank()
+            curr_addr = diskio.load_raw(sfx.name, curr_addr)
+            ;txt.print(sfx.name)
             ;txt.spc()
-            ;txt.print_ub(sfx_banks[i])
+            ;txt.print_ub(sfx.bank)
             ;txt.spc()
-            ;txt.print_uwhex(curr_addr,true)
+            ;txt.print_uwhex(sfx.addr,true)
             ;txt.nl()
         }
 
